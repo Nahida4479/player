@@ -35,3 +35,4 @@
 # Shared with independently shrunk plugin APKs through the parent class loader.
 # Preserve invoke as well as the type name: both are part of the callback ABI.
 -keep interface kotlin.jvm.functions.Function2 { *; }
+-keep interface kotlin.Function { *; }

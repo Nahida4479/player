@@ -16,6 +16,8 @@ val tauriProperties = Properties().apply {
 android {
     compileSdk = 36
     namespace = "dev.verncat.player"
+    // Opt in to exercising independently optimized APK linkage on an emulator.
+    testBuildType = providers.gradleProperty("androidPluginTestBuildType").orElse("debug").get()
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "true"
         applicationId = "dev.verncat.player"
@@ -39,8 +41,13 @@ android {
         }
         getByName("release") {
             isMinifyEnabled = true
+            if (providers.gradleProperty("androidPluginTestBuildType").orNull == "release") {
+                signingConfig = signingConfigs.getByName("debug")
+                proguardFiles("plugin-test-rules.pro")
+                testProguardFiles("proguard-rules.pro", "plugin-test-rules.pro")
+            }
             proguardFiles(
-                *fileTree(".") { include("**/*.pro") }
+                *fileTree(".") { include("**/*.pro"); exclude("plugin-test-rules.pro") }
                     .plus(getDefaultProguardFile("proguard-android-optimize.txt"))
                     .toList().toTypedArray()
             )
