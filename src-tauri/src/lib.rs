@@ -3,6 +3,7 @@ pub mod audio;
 mod audio_codecs;
 mod waveform;
 mod waveform_cache;
+pub mod loudness;
 pub mod covers;
 pub mod demo;
 pub mod discovery;
@@ -176,13 +177,15 @@ pub fn run() {
                     .seed_demo_content()
                     .map_err(|e| Box::<dyn std::error::Error>::from(e.to_string()))?;
             }
-            let sync_enabled = library
+            let device_settings = library
                 .get_device_settings()
-                .map_err(|e| Box::<dyn std::error::Error>::from(e.to_string()))?
-                .sync_enabled;
+                .map_err(|e| Box::<dyn std::error::Error>::from(e.to_string()))?;
+            let sync_enabled = device_settings.sync_enabled;
+            let playback_state = playback::PlaybackState::new(app.handle().clone());
+            playback_state.set_normalize(device_settings.normalize_volume);
             app.manage(library);
             app.manage(audio::AudioState::new());
-            app.manage(playback::PlaybackState::new(app.handle().clone()));
+            app.manage(playback_state);
             plugins::initialize(app.handle()).map_err(std::io::Error::other)?;
             app.manage(discovery::DiscoveryState::new());
             app.manage(sync::SyncState::new(sync_enabled));
@@ -257,6 +260,7 @@ pub fn run() {
             library::get_device_emoji,
             library::set_device_emoji,
             library::get_device_settings,
+            loudness::set_normalize_volume,
             library::set_device_settings,
             audio::get_output_devices,
             audio::set_output_device,
@@ -295,6 +299,7 @@ pub fn run() {
         .expect("error while building tauri application")
         .run(|app, event| {
             if matches!(event, tauri::RunEvent::Exit) {
+                loudness::cancel();
                 plugins::shutdown(app);
             }
         });

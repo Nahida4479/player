@@ -8,7 +8,7 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use rustfft::{num_complex::Complex32, Fft, FftPlanner};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use tauri::Emitter;
@@ -290,6 +290,8 @@ struct DecodeSource {
     segment_start_secs: f64,
     segment_end_secs: Option<f64>,
     duration_secs: Option<f64>,
+    #[serde(skip)]
+    gain: f32,
 }
 
 impl DecodeSource {
@@ -303,6 +305,7 @@ impl DecodeSource {
             segment_start_secs: 0.0,
             segment_end_secs: None,
             duration_secs: None,
+            gain: 1.0,
         }
     }
 
@@ -328,6 +331,7 @@ impl DecodeSource {
             segment_start_secs: start_secs.max(0.0),
             segment_end_secs: end_secs,
             duration_secs,
+            gain: 1.0,
         }
     }
 
@@ -372,6 +376,8 @@ struct Shared {
     source_sample_rate: AtomicU64,
     /// volume 0.0–1.0 stored as u32 (val × 10000)
     volume: AtomicU64,
+    track_gain: AtomicU32,
+    normalize: AtomicBool,
     /// Monotonic beat counter, incremented on every detected beat.
     beat_seq: AtomicU64,
     /// Finished naturally (not stopped by user)
@@ -417,6 +423,8 @@ impl PlaybackState {
                 duration_ms: AtomicU64::new(0),
                 source_sample_rate: AtomicU64::new(0),
                 volume: AtomicU64::new(7000), // 0.7
+                track_gain: AtomicU32::new(1.0f32.to_bits()),
+                normalize: AtomicBool::new(true),
                 beat_seq: AtomicU64::new(0),
                 finished: AtomicBool::new(false),
                 current_file: Mutex::new(None),
@@ -465,9 +473,11 @@ impl PlaybackState {
         &self,
         id: i64,
         source: crate::library::TrackSource,
+        gain: f32,
     ) -> Result<(), String> {
         let mut source = DecodeSource::from_track_source(source);
         source.track_id = Some(id);
+        source.gain = gain;
         self.play_source(source)
     }
 
@@ -498,6 +508,9 @@ impl PlaybackState {
             *ring = RingBuf::new(ring.buf.len());
         }
         clear_spectrum(&self.inner);
+        self.inner
+            .track_gain
+            .store(source.gain.to_bits(), Ordering::SeqCst);
         *self.inner.current_file.lock().unwrap() = Some(source.path.clone());
         *self.inner.current_source.lock().unwrap() = Some(source.clone());
         self.inner.source_id.fetch_add(1, Ordering::SeqCst);
@@ -587,6 +600,10 @@ impl PlaybackState {
         self.inner
             .volume
             .store((v.clamp(0.0, 1.0) * 10000.0) as u64, Ordering::SeqCst);
+    }
+
+    pub fn set_normalize(&self, enabled: bool) {
+        self.inner.normalize.store(enabled, Ordering::Relaxed);
     }
 
     pub fn volume(&self) -> f32 {
@@ -1097,7 +1114,12 @@ fn start_output_stream(shared: Arc<Shared>, sample_rate: u32, channels: u16) -> 
         .build_output_stream(
             &config,
             move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-                let vol = shared2.volume.load(Ordering::Relaxed) as f32 / 10000.0;
+                let gain = if shared2.normalize.load(Ordering::Relaxed) {
+                    f32::from_bits(shared2.track_gain.load(Ordering::Relaxed))
+                } else {
+                    1.0
+                };
+                let vol = shared2.volume.load(Ordering::Relaxed) as f32 / 10000.0 * gain;
                 let playing = shared2.playing.load(Ordering::Relaxed);
                 let mut played_frames = 0usize;
                 {
@@ -1200,8 +1222,9 @@ pub fn playback_play_track(
     let conn = conn.lock().unwrap();
     let source = crate::library::track_source_for_track(&conn, lib.data_dir(), id)?
         .ok_or_else(|| "Track not found".to_string())?;
+    let gain = crate::loudness::track_gain(&conn, id);
     drop(conn);
-    state.play_library_track(id, source)
+    state.play_library_track(id, source, gain)
 }
 
 #[tauri::command]

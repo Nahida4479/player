@@ -153,6 +153,7 @@ pub struct DeviceSettings {
     pub soulseek_username: String,
     #[serde(skip_serializing)]
     pub soulseek_password: String,
+    pub normalize_volume: bool,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -252,6 +253,7 @@ impl LibraryState {
         purge_internal_library_rows(&conn)?;
         prepare_physical_hash_repair(&conn)?;
         crate::waveform_cache::init(&conn)?;
+        crate::loudness::init(&conn)?;
 
 
         log_library_snapshot("startup", &data_dir, db_path.as_deref(), &conn);
@@ -275,6 +277,9 @@ impl LibraryState {
         }
         start_cover_maintenance(Arc::clone(&conn), data_dir.clone(), app_handle.clone());
         crate::waveform_cache::start(Arc::clone(&conn), data_dir.clone(), app_handle.clone());
+        if !in_memory {
+            crate::loudness::start(Arc::clone(&conn), data_dir.clone(), app_handle.clone());
+        }
         start_watcher(data_dir.clone(), Arc::clone(&conn), app_handle)?;
 
         Ok(Self { conn, data_dir })
@@ -540,13 +545,14 @@ impl LibraryState {
 
     pub fn get_device_settings(&self) -> Result<DeviceSettings, BoxError> {
         let conn = self.conn.lock().unwrap();
-        let existing: Result<(String, String, i64, i64, String, String), _> = conn.query_row(
+        let existing: Result<(String, String, i64, i64, String, String, i64), _> = conn.query_row(
             "SELECT emoji,
                     COALESCE(device_name, ''),
                     COALESCE(sync_enabled, 0),
                     COALESCE(soulseek_enabled, 0),
                     COALESCE(soulseek_username, ''),
-                    COALESCE(soulseek_password, '')
+                    COALESCE(soulseek_password, ''),
+                    COALESCE(normalize_volume, 1)
                FROM device_config
               WHERE id = 1",
             [],
@@ -558,6 +564,7 @@ impl LibraryState {
                     row.get(3)?,
                     row.get(4)?,
                     row.get(5)?,
+                    row.get(6)?,
                 ))
             },
         );
@@ -570,6 +577,7 @@ impl LibraryState {
                 soulseek_enabled,
                 soulseek_username,
                 soulseek_password,
+                normalize_volume,
             )) => Ok(DeviceSettings {
                 emoji,
                 device_name,
@@ -577,6 +585,7 @@ impl LibraryState {
                 soulseek_enabled: soulseek_enabled != 0,
                 soulseek_username,
                 soulseek_password,
+                normalize_volume: normalize_volume != 0,
             }),
             Err(_) => {
                 let emoji = random_emoji();
@@ -600,6 +609,7 @@ impl LibraryState {
                     soulseek_enabled: false,
                     soulseek_username: String::new(),
                     soulseek_password: String::new(),
+                    normalize_volume: true,
                 })
             }
         }
@@ -623,8 +633,10 @@ impl LibraryState {
                 sync_enabled,
                 soulseek_enabled,
                 soulseek_username,
-                soulseek_password
-            ) VALUES (1, ?1, ?2, ?3, ?4, ?5, ?6)",
+                soulseek_password,
+                normalize_volume
+            ) VALUES (1, ?1, ?2, ?3, ?4, ?5, ?6,
+                COALESCE((SELECT normalize_volume FROM device_config WHERE id = 1), 1))",
             params![
                 emoji,
                 device_name,
@@ -1618,6 +1630,8 @@ fn index_directory_async(conn: &Arc<Mutex<Connection>>, data_dir: &Path, app: &t
             .map(|e| e.into_path())
             .collect()
     };
+
+    crate::loudness::requeue_failed(&conn.lock().unwrap());
 
     let total = files.len();
     let mut visited: HashSet<String> = HashSet::new();

@@ -3926,6 +3926,13 @@ onMounted(() => {
       indexRunning.value = true;
       indexDone.value = false;
       if (indexDismissTimer) { clearTimeout(indexDismissTimer); indexDismissTimer = null; }
+    } else if (p.status === 'analyzing') {
+      indexCurrent.value = p.current;
+      indexTotal.value = p.total;
+      indexRunning.value = true;
+      indexDone.value = false;
+    } else if (p.status === 'analyzed') {
+      indexRunning.value = false;
     } else if (p.status === 'added') {
       ensureLocalSession();
       if (localSession) {
