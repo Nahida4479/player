@@ -6,6 +6,43 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ApkPluginsTest {
+    /** Run against release host + independently minified Soulseek APK; never connects. */
+    @Test fun soulseekReleaseCallsUsePluginDependenciesAndSharedCallback() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val callbacks = mutableListOf<String>()
+        val runtime = InstalledApkRuntime(context) { _, method, _ ->
+            callbacks += method
+            val value: Any = when (method) {
+                "settings.get" -> JSONObject("{\"revision\":0,\"values\":{}}")
+                "secrets.has" -> false
+                "storage.staging" -> JSONObject().put("path", context.cacheDir.absolutePath)
+                else -> error("Unexpected offline Soulseek callback: $method")
+            }
+            JSONObject().put("ok", true).put("value", value).toString()
+        }
+        val descriptor = runtime.descriptor("dev.verncat.player.soulseek.plugin")
+        val app = requireNotNull(descriptor.pkg.applicationInfo)
+        val loader = PluginClassLoader(app.sourceDir, app.nativeLibraryDir, context.classLoader)
+        assertSame(kotlin.jvm.functions.Function2::class.java, loader.loadClass("kotlin.jvm.functions.Function2"))
+        assertSame(kotlin.Function::class.java, loader.loadClass("kotlin.Function"))
+        assertSame(android.app.Activity::class.java, loader.loadClass("android.app.Activity"))
+        assertThrows(ClassNotFoundException::class.java) { loader.loadClass("dev.verncat.player.NativeHostBridge") }
+        val args = ApkCallArgs().apply {
+            pluginId = descriptor.id; generation = 1; method = "activate"; argsJson = "{}"
+            binding = ApkBinding().apply {
+                packageName = descriptor.pkg.packageName; entryClass = descriptor.entry
+                certificateSha256 = descriptor.certificate; apkSha256 = descriptor.hash
+            }
+        }
+        try {
+            runtime.call(args)
+            args.method = "render"
+            assertEquals("Soulseek", runtime.call(args).getJSONObject("result").getString("title"))
+            assertTrue(callbacks.contains("settings.get"))
+            assertTrue(callbacks.contains("storage.staging"))
+        } finally { runtime.closeAll() }
+    }
+
     @Test fun catalogApkProviderResolvesAndStreamsPrivateDownload() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val authority = "${context.packageName}.catalog-apks"

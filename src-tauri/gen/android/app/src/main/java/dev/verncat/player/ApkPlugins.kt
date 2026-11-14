@@ -97,6 +97,31 @@ class ApkPlugins(private val activity: Activity) : Plugin(activity) {
     fun selfUpdateInstallResult(invoke: Invoke, result: androidx.activity.result.ActivityResult) = selfUpdater.installResult(result)
 }
 
+/** APKs are independently shrunk: even unrelated dependencies can acquire the same name.
+ * Only platform classes and the explicit callback ABI may cross the loader boundary.
+ * This isolates linkage, not permissions: approved plugins still run in Player's process.
+ */
+internal class PluginClassLoader(apk: String, libraries: String, private val host: ClassLoader) :
+    PathClassLoader(apk, libraries, host) {
+    private val platform = requireNotNull(ClassLoader.getSystemClassLoader().parent)
+
+    override fun loadClass(name: String, resolve: Boolean): Class<*> = synchronized(this) {
+        val type = findLoadedClass(name) ?: try {
+            platform.loadClass(name)
+        } catch (_: ClassNotFoundException) {
+            if (name == "kotlin.jvm.functions.Function2" || name == "kotlin.Function") {
+                host.loadClass(name)
+            } else {
+                // No host fallback: missing plugin dependencies must fail, not bind to
+                // an unrelated host class with an independently assigned R8 name.
+                findClass(name)
+            }
+        }
+        if (resolve) resolveClass(type)
+        type
+    }
+}
+
 /** Access is serialized by the Tauri adapter. Kept separate for device integration tests. */
 internal class InstalledApkRuntime(private val context: Context, private val hostCall: (Long, String, String) -> String = NativeHostBridge::call) {
     // Retain loaders: JNI libraries cannot be safely hot-replaced in a live process.
@@ -206,7 +231,7 @@ internal class InstalledApkRuntime(private val context: Context, private val hos
             require(!it.failed) { "Native lifecycle failed: restart Player" }
         } ?: run {
             val app = requireNotNull(installed.pkg.applicationInfo)
-            val loader = PathClassLoader(app.sourceDir, app.nativeLibraryDir, context.classLoader)
+            val loader = PluginClassLoader(app.sourceDir, app.nativeLibraryDir, context.classLoader)
             val type = Class.forName(installed.entry, false, loader)
             require(type.classLoader === loader) { "Entrypoint resolved outside the APK" }
             Loaded(installed.hash, loader, type).also { loaded[args.pluginId] = it }
