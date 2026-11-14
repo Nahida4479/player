@@ -1045,6 +1045,11 @@ fn init_schema(conn: &Connection) -> rusqlite::Result<()> {
              ON tracks(artist COLLATE NOCASE, album COLLATE NOCASE, disc_number, track_number, title COLLATE NOCASE, id);",
     )?;
     conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS indexing_fingerprints (
+            path TEXT PRIMARY KEY, fingerprint TEXT NOT NULL
+        );",
+    )?;
+    conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS play_history (
             id        INTEGER PRIMARY KEY AUTOINCREMENT,
             track_id  INTEGER NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
@@ -1641,34 +1646,27 @@ fn index_directory_async(conn: &Arc<Mutex<Connection>>, data_dir: &Path, app: &t
             .entered();
             conn.lock().unwrap()
         };
-        let index_result: Result<Vec<String>, BoxError> = if is_cue_extension(&ext) {
-            index_cue_file(&conn, data_dir, path)
+        let index_result: Result<(Vec<String>, bool), BoxError> = if is_cue_extension(&ext) {
+            index_cue_file(&conn, data_dir, path).map(|result| (result.paths, result.added))
         } else {
             visited.insert(rel.clone());
-            index_file(&conn, data_dir, path).map(|changed| {
-                if changed {
-                    vec![rel.clone()]
-                } else {
-                    Vec::new()
-                }
-            })
+            index_file(&conn, data_dir, path).map(|added| (Vec::new(), added))
         };
         match index_result {
-            Ok(paths) if !paths.is_empty() => {
-                for path in paths {
-                    visited.insert(path);
+            Ok((paths, newly_added)) => {
+                visited.extend(paths);
+                if newly_added {
+                    added += 1;
+                    emit_index_progress(
+                        app,
+                        i + 1,
+                        total,
+                        "added",
+                        added,
+                        Some(track_name_from_rel(&rel)),
+                    );
                 }
-                added += 1;
-                emit_index_progress(
-                    app,
-                    i + 1,
-                    total,
-                    "added",
-                    added,
-                    Some(track_name_from_rel(&rel)),
-                );
             }
-            Ok(_) => {}
             Err(e) => eprintln!("[library] failed to index {}: {e}", path.display()),
         }
         drop(conn);
@@ -1711,9 +1709,6 @@ fn index_directory_async(conn: &Arc<Mutex<Connection>>, data_dir: &Path, app: &t
             if let Err(error) = delete_tracks_by_path(&conn, path) {
                 eprintln!("[library] failed to remove stale track {path}: {error}");
             }
-        }
-        if !stale.is_empty() {
-            added += stale.len(); // count removals as changes too
         }
     }
 
@@ -1841,12 +1836,15 @@ pub(crate) fn index_file(conn: &Connection, data_dir: &Path, abs: &Path) -> Resu
     if let Some(id) = queued {
         let hash = hash_file(abs);
         commit_repaired_hash(conn, id, hash.as_deref())?;
-        return Ok(hash.is_some());
+        return Ok(false);
     }
 
     let rel = rel_path(data_dir, abs);
     crate::waveform_cache::source_changed(conn, data_dir, &rel)?;
     let sidecar_cover = find_sidecar_cover_candidate(data_dir, abs);
+    let mut source_paths = vec![abs];
+    if let Some(cover) = &sidecar_cover { source_paths.push(&cover.abs_path); }
+    let fingerprint = indexing_fingerprint(&source_paths);
 
     let modified_secs = path_modified_secs(abs);
     let now_secs = std::time::SystemTime::now()
@@ -1917,7 +1915,7 @@ pub(crate) fn index_file(conn: &Connection, data_dir: &Path, abs: &Path) -> Resu
                 .as_deref()
                 .is_some_and(|hash| covers::is_stored(data_dir, hash));
             let cover_file_is_current = cover_hash.is_none() || cached_cover_file_exists;
-            if *ms == modified_secs
+            if *ms == modified_secs && cached_indexing_fingerprint(conn, &rel, &fingerprint)
                 && cover_file_is_current
                 && sidecar_cover_state_matches(
                     cached_cover_source_path.as_deref(),
@@ -1971,10 +1969,11 @@ pub(crate) fn index_file(conn: &Connection, data_dir: &Path, abs: &Path) -> Resu
         #[cfg(feature = "tracy")]
         drop(sqlite_span);
         persist_track_cover(conn, data_dir, track_id, cover_data)?;
+        save_indexing_fingerprint(conn, &rel, &fingerprint)?;
         if let Some(file_hash) = file_hash.as_deref() {
             remove_stale_tracks_with_same_hash(conn, data_dir, &rel, file_hash)?;
         }
-        return Ok(true);
+        return Ok(false);
     }
 
     let mut meta = read_audio_meta(abs, sidecar_cover.as_ref());
@@ -2068,8 +2067,9 @@ pub(crate) fn index_file(conn: &Connection, data_dir: &Path, abs: &Path) -> Resu
     if let Some(file_hash) = file_hash.as_deref() {
         remove_stale_tracks_with_same_hash(conn, data_dir, &rel, file_hash)?;
     }
+    save_indexing_fingerprint(conn, &rel, &fingerprint)?;
 
-    Ok(true)
+    Ok(cached.is_none())
 }
 
 fn remove_stale_tracks_with_same_hash(
@@ -2600,6 +2600,36 @@ fn resolve_cue_audio_path(cue_abs: &Path, filename: &str) -> PathBuf {
         .join(normalized)
 }
 
+pub(crate) struct CueIndexResult {
+    pub paths: Vec<String>,
+    pub added: bool,
+}
+
+fn indexing_fingerprint(paths: &[&Path]) -> Option<String> {
+    let mut fingerprint = String::new();
+    for path in paths {
+        let metadata = path.metadata().ok()?;
+        let modified = metadata.modified().ok()?.duration_since(std::time::UNIX_EPOCH).ok()?;
+        fingerprint.push_str(&format!("{}:{}:{};", path.display(), metadata.len(), modified.as_nanos()));
+    }
+    Some(fingerprint)
+}
+
+fn cached_indexing_fingerprint(conn: &Connection, path: &str, fingerprint: &Option<String>) -> bool {
+    fingerprint.as_ref().is_some_and(|fingerprint| {
+        conn.query_row("SELECT fingerprint FROM indexing_fingerprints WHERE path=?1", [path],
+            |row| row.get::<_, String>(0)).optional().ok().flatten().as_ref() == Some(fingerprint)
+    })
+}
+
+fn save_indexing_fingerprint(conn: &Connection, path: &str, fingerprint: &Option<String>) -> Result<(), BoxError> {
+    if let Some(fingerprint) = fingerprint {
+        conn.execute("INSERT INTO indexing_fingerprints(path,fingerprint) VALUES (?1,?2)
+            ON CONFLICT(path) DO UPDATE SET fingerprint=excluded.fingerprint", params![path, fingerprint])?;
+    }
+    Ok(())
+}
+
 #[cfg_attr(
     feature = "tracy",
     tracing::instrument(
@@ -2613,7 +2643,7 @@ pub(crate) fn index_cue_file(
     conn: &Connection,
     data_dir: &Path,
     cue_abs: &Path,
-) -> Result<Vec<String>, BoxError> {
+) -> Result<CueIndexResult, BoxError> {
     let cue_rel = rel_path(data_dir, cue_abs);
     let queued: Vec<(i64, String, String, Option<f64>, Option<f64>)> = {
         let mut stmt = conn.prepare("SELECT t.id,t.path,t.source_path,t.segment_start_secs,t.segment_end_secs
@@ -2629,7 +2659,7 @@ pub(crate) fn index_cue_file(
             commit_repaired_hash(conn, id, identity.as_deref())?;
             paths.push(path);
         }
-        return Ok(paths);
+        return Ok(CueIndexResult { paths, added: false });
     }
     let cue_modified_secs = path_modified_secs(cue_abs);
     let now_secs = std::time::SystemTime::now()
@@ -2648,6 +2678,39 @@ pub(crate) fn index_cue_file(
         rows
     };
 
+    let mut source_paths = vec![cue_abs.to_path_buf()];
+    for file in &sheet.files {
+        let audio = resolve_cue_audio_path(cue_abs, &file.filename);
+        if let Some(cover) = find_sidecar_cover_candidate(data_dir, &audio) {
+            source_paths.push(cover.abs_path);
+        }
+        source_paths.push(audio);
+    }
+    let source_refs: Vec<&Path> = source_paths.iter().map(PathBuf::as_path).collect();
+    let mut fingerprint = indexing_fingerprint(&source_refs);
+    // The small sheet also contributes its contents, independently of timestamp precision.
+    if let Some(fingerprint) = &mut fingerprint {
+        fingerprint.push_str(&hash_file(cue_abs).unwrap_or_default());
+    }
+    let expected_paths: Vec<String> = sheet.files.iter().flat_map(|file| file.tracks.iter())
+        .filter(|track| track.index01_secs.is_some())
+        .map(|track| cue_virtual_path(&cue_rel, track.number)).collect();
+    let covers_current: bool = conn.query_row(
+        "SELECT COUNT(*) FROM tracks WHERE cue_path=?1 AND file_hash IS NULL", [&cue_rel], |r| r.get::<_, i64>(0))? == 0;
+    if !existing_paths.is_empty() && existing_paths.len() == expected_paths.len()
+        && expected_paths.iter().all(|path| existing_paths.contains(path))
+        && covers_current && cached_indexing_fingerprint(conn, &cue_rel, &fingerprint) {
+        let mut stmt = conn.prepare("SELECT cover_hash FROM tracks WHERE cue_path=?1")?;
+        let covers = stmt.query_map([&cue_rel], |r| r.get::<_, Option<String>>(0))?;
+        let mut all_stored = true;
+        for cover in covers {
+            if cover?.is_some_and(|hash| !covers::is_stored(data_dir, &hash)) { all_stored = false; }
+        }
+        if all_stored {
+            return Ok(CueIndexResult { paths: existing_paths, added: false });
+        }
+    }
+    let mut added = false;
     for cue_file in sheet.files {
         let audio_abs = resolve_cue_audio_path(cue_abs, &cue_file.filename);
         if !audio_abs.exists() {
@@ -2689,6 +2752,7 @@ pub(crate) fn index_cue_file(
                 .filter(|end| *end > start_secs);
             let duration_secs = end_secs.map(|end| end - start_secs);
             let virtual_path = cue_virtual_path(&cue_rel, cue_track.number);
+            added |= !existing_paths.contains(&virtual_path);
             let track_number = if cue_track.number > 0 {
                 Some(cue_track.number)
             } else {
@@ -2796,7 +2860,8 @@ pub(crate) fn index_cue_file(
         }
     }
 
-    Ok(visited)
+    save_indexing_fingerprint(conn, &cue_rel, &fingerprint)?;
+    Ok(CueIndexResult { paths: visited, added })
 }
 
 /// The original image behind a cover hash, read again from the audio file (or
@@ -3119,7 +3184,7 @@ fn handle_fs_events_batch(
             .unwrap_or("")
             .to_ascii_lowercase();
         let changed = if is_cue_extension(&ext) {
-            index_cue_file(&c, data_dir, path).map(|paths| !paths.is_empty())
+            index_cue_file(&c, data_dir, path).map(|result| result.added)
         } else {
             index_file(&c, data_dir, path)
         };
@@ -3161,7 +3226,7 @@ fn handle_fs_events_batch(
             .entered();
             conn.lock().unwrap()
         };
-        let removed = if is_cue_extension(&ext) {
+        let _removed = if is_cue_extension(&ext) {
             match delete_tracks_by_cue_path(&c, &rel) {
                 Ok(removed) => removed,
                 Err(error) => {
@@ -3184,9 +3249,6 @@ fn handle_fs_events_batch(
                 }
             }
         };
-        if removed > 0 {
-            added += 1;
-        }
         drop(c);
     }
 
@@ -4589,6 +4651,57 @@ pub fn unmark_duplicates(
 mod tests {
     use super::*;
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn indexing_is_idempotent_for_cue_and_regular_files() {
+        let suffix = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let root = std::env::temp_dir().join(format!("player-index-idempotent-{suffix}"));
+        std::fs::create_dir_all(&root).unwrap();
+        let audio = root.join("album.flac");
+        let cue = root.join("album.cue");
+        std::fs::write(&audio, b"deterministic non-audio fixture").unwrap();
+        let sheet = "PERFORMER \"Тени Свободы\"\nTITLE \"Album\"\nFILE \"album.flac\" WAVE\nTRACK 01 AUDIO\nTITLE \"First\"\nINDEX 01 00:00:00\nTRACK 02 AUDIO\nTITLE \"Second\"\nINDEX 01 01:00:00\n";
+        std::fs::write(&cue, sheet).unwrap();
+        let conn = Connection::open_in_memory().unwrap();
+        init_schema(&conn).unwrap();
+        crate::waveform_cache::init(&conn).unwrap();
+        assert!(index_file(&conn, &root, &audio).unwrap());
+        let first = index_cue_file(&conn, &root, &cue).unwrap();
+        assert!(first.added);
+        assert_eq!(first.paths.len(), 2);
+        let identities = || {
+            let mut stmt = conn.prepare("SELECT id,path,date_added,file_hash FROM tracks ORDER BY id").unwrap();
+            let rows = stmt.query_map([], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, Option<i64>>(2)?, r.get::<_, Option<String>>(3)?))).unwrap();
+            rows.collect::<rusqlite::Result<Vec<_>>>().unwrap()
+        };
+        let before = identities();
+        let changes = conn.total_changes();
+        assert!(!index_file(&conn, &root, &audio).unwrap());
+        let second = index_cue_file(&conn, &root, &cue).unwrap();
+        assert!(!second.added);
+        assert_eq!(second.paths, first.paths);
+        assert_eq!(identities(), before);
+        assert_eq!(conn.total_changes(), changes);
+        std::fs::write(&cue, sheet.replace("First", "Changed title")).unwrap();
+        assert!(!index_cue_file(&conn, &root, &cue).unwrap().added);
+        let track = get_track_by_path(&conn, "album.cue#01").unwrap().unwrap();
+        assert_eq!(track.title.as_deref(), Some("Changed title"));
+        assert_eq!(identities(), before);
+        std::fs::write(&audio, b"changed deterministic fixture, different size").unwrap();
+        assert!(!index_file(&conn, &root, &audio).unwrap());
+        assert!(!index_cue_file(&conn, &root, &cue).unwrap().added);
+        let changed = identities();
+        assert_eq!(changed.len(), 3);
+        for (old, new) in before.iter().zip(&changed) {
+            assert_eq!((&old.0, &old.1, &old.2), (&new.0, &new.1, &new.2));
+            assert_ne!(old.3, new.3);
+        }
+        let changes = conn.total_changes();
+        assert!(!index_file(&conn, &root, &audio).unwrap());
+        assert!(!index_cue_file(&conn, &root, &cue).unwrap().added);
+        assert_eq!(conn.total_changes(), changes);
+        std::fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn physical_hash_queue_resumes_partial_work_and_keeps_failed_sources_quarantined() {
