@@ -13,14 +13,16 @@ pub(crate) fn init(conn: &Connection) -> rusqlite::Result<()> {
         version INTEGER NOT NULL, identity TEXT NOT NULL, samples BLOB);
         CREATE TABLE IF NOT EXISTS waveform_jobs (
         track_id INTEGER PRIMARY KEY REFERENCES tracks(id) ON DELETE CASCADE);
+        DROP TRIGGER IF EXISTS waveform_track_insert;
+        DROP TRIGGER IF EXISTS waveform_track_update;
         CREATE TRIGGER IF NOT EXISTS waveform_track_insert AFTER INSERT ON tracks BEGIN
-          INSERT OR IGNORE INTO waveform_jobs VALUES (NEW.id); END;
+          INSERT INTO waveform_jobs VALUES (NEW.id) ON CONFLICT(track_id) DO NOTHING; END;
         CREATE TRIGGER IF NOT EXISTS waveform_track_update AFTER UPDATE OF file_hash, modified_secs,
           source_path, segment_start_secs, segment_end_secs ON tracks
         WHEN OLD.file_hash IS NOT NEW.file_hash OR OLD.modified_secs IS NOT NEW.modified_secs
           OR OLD.source_path IS NOT NEW.source_path OR OLD.segment_start_secs IS NOT NEW.segment_start_secs
           OR OLD.segment_end_secs IS NOT NEW.segment_end_secs BEGIN
-          INSERT OR IGNORE INTO waveform_jobs VALUES (NEW.id); END;
+          INSERT INTO waveform_jobs VALUES (NEW.id) ON CONFLICT(track_id) DO NOTHING; END;
         DELETE FROM waveform_jobs WHERE track_id NOT IN (SELECT id FROM tracks);
         DELETE FROM track_waveforms WHERE track_id NOT IN (SELECT id FROM tracks);")?;
     conn.execute("INSERT OR IGNORE INTO waveform_jobs SELECT t.id FROM tracks t

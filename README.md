@@ -50,6 +50,7 @@ This project is not a cloud streaming service! The filesystem is the source of t
 Player focuses on a few core jobs:
 
 - Index a local music library and keep it in sync with the filesystem.
+  Repeated scans preserve track IDs and only count newly discovered files as additions; unchanged audio and CUE albums are skipped.
 - Play audio through a native Rust backend with low-latency controls.
 - Browse by artist and album, and store and edit metadata, likes, history, and playlists.
 - Build smart playlists from filter rules.
