@@ -28,3 +28,11 @@ input[aria-busy="true"]::file-selector-button {
   input[aria-busy="true"]::file-selector-button,
   .loading-stripes { animation: none; }
 }
+
+/* Keep operation progress inside its action, beneath the existing busy stripes. */
+.progress-button { position: relative; isolation: isolate; overflow: hidden; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.button-progress-fill { position: absolute; inset: 0 auto 0 0; z-index: -1; background: currentColor; opacity: .2; pointer-events: none; }
+.button-progress-label { position: relative; font-variant-numeric: tabular-nums; }
+.player-reduced-motion button[aria-busy="true"],
+.player-reduced-motion input[aria-busy="true"]::file-selector-button,
+.player-reduced-motion .loading-stripes { animation: none; }

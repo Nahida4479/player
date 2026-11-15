@@ -62,9 +62,9 @@ function updateDesktopPosition() {
   const spaceAbove = triggerRect.top;
   const openBelow = spaceBelow >= panelHeight + gap || spaceBelow >= spaceAbove;
 
-  const top = openBelow
+  const top = Math.max(margin, openBelow
     ? Math.min(triggerRect.bottom + gap, window.innerHeight - panelHeight - margin)
-    : Math.max(margin, triggerRect.top - panelHeight - gap);
+    : triggerRect.top - panelHeight - gap);
   const left = Math.min(
     Math.max(margin, triggerRect.right - panelWidth),
     window.innerWidth - panelWidth - margin,
@@ -98,7 +98,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="wrapperRef" class="responsive-popup-wrapper" :class="wrapperClass">
+  <div ref="wrapperRef" class="responsive-popup-wrapper" :class="wrapperClass" @keydown.esc.stop="emit('close')">
     <slot name="trigger" />
     <Transition name="dropdown">
       <div
@@ -137,6 +137,7 @@ onUnmounted(() => {
         v-if="open"
         class="responsive-popup-mobile"
         @click.stop="emit('close')"
+        @keydown.esc.stop="emit('close')"
       >
         <div
           class="responsive-popup-mobile-panel dropdown"
@@ -169,11 +170,12 @@ onUnmounted(() => {
   position: fixed;
   background: var(--color-surface);
   border-radius: 4px;
-  padding: 4px 0;
+  padding: var(--space-1) 0;
   min-width: 190px;
+  max-width: calc(100vw - 24px);
   box-shadow: 0 16px 32px color-mix(in srgb, var(--color-shadow) 50%, transparent);
   z-index: 200;
-  max-height: min(72vh, 560px);
+  max-height: min(72vh, 560px, calc(100dvh - 24px));
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -242,10 +244,11 @@ onUnmounted(() => {
 }
 
 .responsive-popup-actions {
+  flex-wrap: wrap;
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 12px 16px 14px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-4);
   flex-shrink: 0;
   background: var(--color-surface);
   border-top: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
@@ -267,7 +270,7 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+    padding: max(var(--space-3), env(safe-area-inset-top)) var(--space-3) max(var(--space-3), env(safe-area-inset-bottom));
     background: color-mix(in srgb, var(--color-shadow) 56%, transparent);
   }
 
@@ -280,14 +283,14 @@ onUnmounted(() => {
     width: calc(100vw - 24px) !important;
     min-width: 0 !important;
     max-width: calc(100vw - 24px) !important;
-    max-height: min(72vh, 560px);
+    max-height: min(72vh, 560px, calc(100dvh - max(var(--space-3), env(safe-area-inset-top)) - max(var(--space-3), env(safe-area-inset-bottom))));
     overflow: hidden;
     display: flex;
     flex-direction: column;
     transform: none;
     background: var(--color-surface);
     border-radius: 4px;
-    padding: 4px 0;
+    padding: var(--space-1) 0;
     box-shadow: 0 16px 32px color-mix(in srgb, var(--color-shadow) 50%, transparent);
   }
 

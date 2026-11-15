@@ -7,6 +7,10 @@ a, button, [role="button"] {
   -webkit-tap-highlight-color: transparent;
   outline: none;
 }
+:where(a, button, [role="button"]):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
 
 /* Theme switches: a cross-fade where view transitions exist, otherwise a short color transition. */
 ::view-transition-old(root),

@@ -7,7 +7,7 @@
 }
 
 :where(.settings-panel) :where(.update-card, .plugin-card) {
-  padding: 20px;
+  padding: var(--panel-padding);
   border-radius: 8px;
 }
 

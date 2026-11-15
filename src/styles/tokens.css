@@ -2,6 +2,21 @@
 :root {
   --font-body: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
+  --space-half: 2px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --page-padding: var(--space-6);
+  --section-gap: var(--space-6);
+  --panel-padding: var(--space-4);
+  --control-gap: var(--space-2);
+
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
@@ -45,6 +60,7 @@
 
 @media (max-width: 768px) {
   :root {
+    --page-padding: var(--space-4);
     --fs-nav: 15px;
     --fs-h2: 20px;
     --fs-section-link: 10px;
@@ -79,5 +95,44 @@
     --fs-detail-title: 17px;
     --fs-detail-artist: 13px;
     --fs-detail-time: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --fs-nav: 14px;
+    --fs-h2: 18px;
+    --fs-section-link: 10px;
+    --fs-card-title: 11px;
+    --fs-card-meta: 10px;
+    --fs-player-title: 11px;
+    --fs-player-meta: 9px;
+    --fs-input: 11px;
+    --fs-empty: 12px;
+    --fs-eyebrow: 10px;
+    --fs-group: 11px;
+    --fs-track-side: 11px;
+    --fs-track-title: 12px;
+    --fs-track-meta: 10px;
+    --fs-badge: 9px;
+    --fs-modal-title: 15px;
+    --fs-field-label: 10px;
+    --fs-field-input: 12px;
+    --fs-button: 11px;
+    --fs-dropdown-label: 10px;
+    --fs-dropdown-item: 12px;
+    --fs-queue-title: 11px;
+    --fs-queue-meta: 9px;
+    --fs-queue-dur: 10px;
+    --fs-status-pill: 11px;
+    --fs-powered-by: 9px;
+    --fs-body-sm: 10px;
+    --fs-body-md: 11px;
+    --fs-peer-title: 12px;
+    --fs-peer-meta: 10px;
+    --fs-control: 10px;
+    --fs-detail-title: 16px;
+    --fs-detail-artist: 12px;
+    --fs-detail-time: 10px;
   }
 }

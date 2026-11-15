@@ -3,7 +3,8 @@
   border: 1px solid var(--color-border-strong);
   background: transparent;
   color: var(--color-text);
-  padding: 9px 16px;
+  padding: var(--space-2) var(--space-4);
+  min-height: 40px;
   border-radius: var(--radius-pill);
   cursor: pointer;
   flex-shrink: 0;
@@ -42,9 +43,11 @@
   border-color: var(--color-accent-hover);
 }
 
-.control-button-compact { padding: 7px 14px; }
+.control-button-compact { padding: var(--space-2) var(--space-3); }
+.import-files-action { display: inline-flex; align-items: center; justify-content: center; gap: var(--control-gap); max-width: 100%; white-space: normal; }
+.import-files-action .app-icon { width: 16px; height: 16px; color: currentColor; }
 .form-file { max-width: 100%; min-width: 0; color: var(--color-text-muted); font-size: var(--fs-button); cursor: pointer; }
-.form-file::file-selector-button { margin-inline-end: 12px; }
+.form-file::file-selector-button { margin-inline-end: var(--space-3); }
 .form-file:disabled { cursor: default; }
 .form-file:focus-visible { outline: none; }
 
