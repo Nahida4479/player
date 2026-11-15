@@ -88,7 +88,7 @@ function openNoteLink(event: MouseEvent) {
       </div>
       <div v-if="status?.has_update && status.release_notes" class="release-notes">
         <h3>Release notes</h3>
-        <div @click="openNoteLink" v-html="markdown.parse(status.release_notes)" />
+        <div class="release-notes-content" @click="openNoteLink" v-html="markdown.parse(status.release_notes)" />
       </div>
       <div v-else class="changelog">
         <h3>Changelog</h3>
@@ -144,5 +144,28 @@ strong { color: var(--color-text); }
 .changelog ul { padding-left: var(--space-6); }
 .changelog li { padding: var(--space-2) 0; line-height: 1.5; overflow-wrap: anywhere; }
 .release-notes { line-height: 1.7; overflow-wrap: anywhere; }
+.release-notes-content { margin-top: var(--space-4); }
+.release-notes-content :deep(p),
+.release-notes-content :deep(ul),
+.release-notes-content :deep(ol),
+.release-notes-content :deep(blockquote),
+.release-notes-content :deep(pre) { margin: 0 0 var(--space-4); }
+.release-notes-content :deep(ul),
+.release-notes-content :deep(ol) { padding-left: var(--space-6); }
+.release-notes-content :deep(ul) { list-style-type: disc; }
+.release-notes-content :deep(ol) { list-style-type: decimal; }
+.release-notes-content :deep(li + li) { margin-top: var(--space-2); }
+.release-notes-content :deep(li > ul),
+.release-notes-content :deep(li > ol) { margin-top: var(--space-2); margin-bottom: 0; }
+.release-notes-content :deep(h1),
+.release-notes-content :deep(h2),
+.release-notes-content :deep(h3),
+.release-notes-content :deep(h4),
+.release-notes-content :deep(h5),
+.release-notes-content :deep(h6) { margin: var(--space-6) 0 var(--space-3); color: var(--color-text); line-height: 1.4; }
+.release-notes-content :deep(blockquote) { padding-left: var(--space-4); border-left: 2px solid var(--color-border); }
+.release-notes-content :deep(pre) { padding: var(--space-3); overflow-x: auto; }
+.release-notes-content :deep(> :first-child) { margin-top: 0; }
+.release-notes-content :deep(> :last-child) { margin-bottom: 0; }
 .release-notes :deep(a) { color: var(--color-accent-text); }
 </style>

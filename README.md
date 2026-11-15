@@ -149,6 +149,7 @@ These screenshots were captured with the built-in demo mode. Click any image to 
 
 - Regular playlists and smart playlists driven by filter rules, with pinning to the home screen.
 - Fast paged library and search, so large libraries stay responsive.
+- Playing a pinned regular or smart playlist from Home, including a preview row, continues through the full playlist by fetching queue pages as needed rather than stopping at the preview or loading every track upfront.
 - Reveal a track's file in the file manager, or share it (Android).
 
 ### Sync, discovery, and remote playback
@@ -181,7 +182,7 @@ These screenshots were captured with the built-in demo mode. Click any image to 
 - Seek progress moves smoothly between playback status updates without extra backend polling; pausing freezes it and seeking jumps directly to the selected position.
 - Footer track titles and artists scroll independently only when they exceed their available width, travelling just far enough to reveal the end before returning. Fitting text stays still; reduced motion disables this scrolling, and artist names remain clickable.
 - Optional Discord Rich Presence on desktop, off by default.
-- About section with version info, update checks, an embedded changelog, contributors, and third-party licenses.
+- About section with version info, update checks, an embedded changelog, contributors, and third-party licenses. Release notes preserve Markdown paragraph, heading, and nested-list spacing; long code blocks scroll within the notes.
 - Demo mode with a seeded library (`--demo`), used for the screenshots above.
 - Seek bars use cached audio waveforms: indexing analyzes local audio into 256 absolute RMS-amplitude bins (mean energy across channels, without phase cancellation or per-bin normalization), persists them across restarts, and regenerates them when the source, track segment, or analysis algorithm changes. Existing libraries and older peak caches are backfilled in the background, prioritizing the selected track after the current source finishes. The player lazily requests only the selected track's cached waveform and refreshes it when analysis finishes; pending or unsupported waveforms show a neutral progress line instead. Narrow seek bars combine bins by mean energy to keep visible gaps between bars. Desktop, mobile, and track detail views support click/drag seeking and arrow keys, Home, and End; the visual is 19px high while mobile seek targets remain at least 44px.
 

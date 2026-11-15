@@ -1291,18 +1291,25 @@ async function openHomePinnedItem(item: HomePinnedPlaylistItem) {
   smartView.value = item.playlist as SmartPlaylist;
 }
 
-async function playHomePinnedItem(item: HomePinnedPlaylistItem) {
-  if (item.trackCount === 0) return;
-
+async function playHomePinnedItem(item: HomePinnedPlaylistItem, index = 0) {
+  if (item.trackCount === 0 || index < 0 || shouldSuppressTrackRowClick()) return;
+  const includeDuplicates = showDuplicateTracks.value;
   if (item.kind === 'regular') {
     const playlist = item.playlist as Playlist;
-    const tracks = filterDuplicateTracks(await invoke<Track[]>('get_playlist_tracks', { playlistId: playlist.id }));
-    if (tracks.length) playFromPlaylist(tracks, 0);
+    const page = await invoke<TrackPage>('get_playlist_tracks_page', {
+      playlistId: playlist.id, limit: LIBRARY_TRACK_PAGE_SIZE, offset: 0, includeDuplicates,
+    });
+    if (index < page.tracks.length) playFromPlaylist(page.tracks, index, {
+      kind: 'regular-playlist', playlistId: playlist.id, name: playlist.name,
+      includeDuplicates, hasMore: page.has_more,
+    });
     return;
   }
-
-  const tracks = (await getSmartPlaylistPage(item.playlist as SmartPlaylist, 100)).tracks;
-  if (tracks.length) playFromPlaylist(tracks, 0);
+  const playlist = item.playlist as SmartPlaylist;
+  const page = await getSmartPlaylistPage(playlist, LIBRARY_TRACK_PAGE_SIZE);
+  if (index < page.tracks.length) playFromPlaylist(page.tracks, index, {
+    kind: 'smart-playlist', playlist, includeDuplicates, hasMore: page.has_more,
+  });
 }
 
 async function openHomePinnedCard(item: HomePinnedPlaylistItem) {
@@ -4240,7 +4247,7 @@ onUnmounted(() => {
                 :key="`${item.key}:${track.id}`"
                 :track="track"
                 show-genre
-                @play="playPlaylistTrack(item.tracks, idx)"
+                @play="playHomePinnedItem(item, idx)"
               />
             </div>
             <div v-if="item.tracks.length > item.previewTracks.length" class="library-empty home-playlist-more">… and {{ item.tracks.length - item.previewTracks.length }} more</div>
