@@ -210,8 +210,7 @@ onMounted(() => { void loadConfig(); });
           <div class="settings-group">
             <h3>Library maintenance</h3>
             <div class="setting-row"><div><h4>Show duplicates</h4><p>Include tracks marked as duplicates in your library and playlists.</p></div><SettingsToggle :model-value="showDuplicateTracks" label="Show duplicates" @update:model-value="emit('update:showDuplicateTracks', $event)" /></div>
-            <div class="setting-row"><div><h4>Reindex library</h4><p>Scan your music folder for new or changed files.</p></div><button class="control-button" :aria-busy="indexBusy" :disabled="indexBusy" @click="emit('reindex')">{{ indexBusy ? 'Scanning...' : 'Reindex' }}</button></div>
-            <div v-if="indexBusy" class="scan-progress" role="status"><progress :value="indexTotal ? indexCurrent : undefined" :max="indexTotal || 1" aria-label="Library scanning progress" /><p>{{ indexTotal ? `${indexCurrent} of ${indexTotal} files scanned` : 'Looking for music files...' }}</p></div>
+            <div class="setting-row"><div><h4>Reindex library</h4><p>Scan your music folder for new or changed files.</p></div><button class="control-button progress-button" :aria-busy="indexBusy" :disabled="indexBusy" @click="emit('reindex')"><span v-if="indexBusy && indexTotal > 0" class="button-progress-fill" aria-hidden="true" :style="{ width: `${Math.min(100, Math.max(0, indexCurrent / indexTotal * 100))}%` }" /><span class="button-progress-label">{{ indexBusy ? (indexTotal > 0 ? `Scanning ${indexCurrent} of ${indexTotal} files` : 'Looking for music files...') : 'Reindex' }}</span></button></div>
             <div class="setting-row"><div><h4>Duplicates</h4><p>Review matching tracks and choose which ones to keep visible.</p></div><button class="control-button" @click="emit('duplicates')">Review duplicates</button></div>
             <div class="setting-row"><div><h4>Identify tracks</h4><p>Look up missing metadata using audio fingerprints. Requires an internet connection.</p></div><button class="control-button" :aria-busy="identifyBusy" :disabled="identifyBusy" @click="emit('identify')">{{ identifyBusy ? 'Identifying...' : 'Identify tracks' }}</button></div>
             <p v-if="actionError" class="error" role="alert">{{ actionError }}</p><p v-if="actionMessage" class="help" role="status">{{ actionMessage }}</p>
@@ -367,35 +366,6 @@ legend { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
 .password-field { display: flex; border: 1px solid var(--color-border-strong); border-radius: 5px; background: transparent; }
 .password-field input { border: 0; background: transparent; min-width: 0; }
 .settings-panel .password-field button { border: 0; border-radius: 0 4px 4px 0; }
-.scan-progress { padding-top: 16px; }
-.scan-progress p { color: var(--color-text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
-.scan-progress progress {
-  display: block;
-  width: 100%;
-  height: 4px;
-  margin-bottom: 10px;
-  border: 0;
-  border-radius: 99px;
-  overflow: hidden;
-  appearance: none;
-  -webkit-appearance: none;
-  background: color-mix(in srgb, var(--color-text) 12%, transparent);
-  color: var(--color-accent);
-}
-.scan-progress progress::-webkit-progress-bar { background: color-mix(in srgb, var(--color-text) 12%, transparent); border-radius: 99px; }
-.scan-progress progress::-webkit-progress-value { background: var(--color-accent); border-radius: 99px; }
-.scan-progress progress::-moz-progress-bar { background: var(--color-accent); border-radius: 99px; }
-.scan-progress progress:indeterminate {
-  background: linear-gradient(90deg, transparent, var(--color-accent), transparent) -100% 0 / 50% 100% no-repeat, color-mix(in srgb, var(--color-text) 12%, transparent);
-  animation: scan-search 1.6s ease-in-out infinite;
-}
-.scan-progress progress:indeterminate::-webkit-progress-bar { background: transparent; }
-.scan-progress progress:indeterminate::-moz-progress-bar { background: transparent; }
-@keyframes scan-search { to { background-position: 200% 0, 0 0; } }
-@media (prefers-reduced-motion: reduce) {
-  .scan-progress progress:indeterminate { animation: none; background-position: 50% 0, 0 0; }
-}
-:global(.player-reduced-motion) .scan-progress progress:indeterminate { animation: none; background-position: 50% 0, 0 0; }
 .appearance-preview { display: grid; grid-template-columns: clamp(88px, 32%, 208px) minmax(0, 1fr); align-items: center; gap: 24px; margin-bottom: 18px; padding: 24px 0; background: inherit; border-radius: 6px; overflow: hidden; container: appearance-preview / inline-size; }
 .preview-track { display: flex; flex-direction: column; gap: 4px; width: 100%; min-width: 0; }
 .preview-art { position: relative; justify-self: start; width: 100%; max-width: 208px; aspect-ratio: 1; }

@@ -65,6 +65,8 @@ Frontend:
 - [src/icons.ts](src/icons.ts) and [src/types/settings.ts](src/types/settings.ts): the icon registry, and the settings sections and types.
 - [src/theme.ts](src/theme.ts) and [src/styles/](src/styles/): theme colors, applied as CSS variables, and the global stylesheets (static size tokens, element defaults, shared component styles).
 
+Settings reindexing and About update downloads show determinate fill and file counts or percentages inside their disabled action buttons. Unknown totals and Android verification/installation stages retain the global animated busy stripes without a misleading determinate fill; OS and in-app reduced-motion preferences stop those stripes. Android cancellation remains a separate enabled action where supported.
+
 Backend, one module per subsystem:
 
 - [src-tauri/src/lib.rs](src-tauri/src/lib.rs): Tauri bootstrap, managed state registration, the `cover://` scheme, and command exposure.
@@ -684,6 +686,7 @@ Key responsibilities:
 - Request all-files access on Android when needed.
 - Ensure `/sdcard/Player` exists.
 - Acquire a Wi-Fi multicast lock so mDNS discovery works on Android.
+- Respect Android system font size through the existing `onWebViewCreate` hook: set WebView `textZoom` to the rounded absolute `resources.configuration.fontScale * 100` percentage. The activity handles `fontScale` configuration changes and reapplies the new percentage to the existing WebView, without multiplying previous zoom, clamping the user's choice, changing viewport scale, or disabling pinch zoom. CSS must not apply a second Android font-scale multiplier. Progress labels wrap within their action and buttons grow naturally rather than using fixed text heights.
 
 Bridge methods exposed to JS:
 

@@ -54,11 +54,11 @@ function openNoteLink(event: MouseEvent) {
           <p v-else-if="status">{{ status.latest_version ? 'You have the latest release.' : status.message }}</p>
           <p v-else>Check for the latest version of Player.</p>
         </div>
-        <button v-if="status?.has_update || updating" class="control-button control-button-primary" :disabled="updating" :aria-busy="updating" @click="emit('update')">
-          {{ updating ? (androidUpdate?.status === 'permission' ? 'Permission required' : androidUpdate?.status === 'installing' ? 'Installer opened' : androidUpdate?.status === 'verifying' ? 'Verifying APK...' : progress !== null ? `Downloading ${progress}%` : 'Downloading...') : desktopReady || status?.asset_url ? 'Update now' : 'View release' }}
+        <button v-if="status?.has_update || updating" class="control-button control-button-primary progress-button" :disabled="updating" :aria-busy="updating" @click="emit('update')">
+          <span v-if="updating && progress !== null && (!androidUpdate || androidUpdate.status === 'downloading')" class="button-progress-fill" aria-hidden="true" :style="{ width: `${Math.min(100, Math.max(0, progress))}%` }" />
+          <span class="button-progress-label">{{ updating ? (androidUpdate?.status === 'permission' ? 'Permission required' : androidUpdate?.status === 'installing' ? 'Installer opened' : androidUpdate?.status === 'verifying' ? 'Verifying APK...' : progress !== null ? `Downloading ${progress}%` : 'Downloading...') : desktopReady || status?.asset_url ? 'Update now' : 'View release' }}</span>
         </button>
         <button class="control-button" v-else :disabled="checking" :aria-busy="checking" @click="emit('check')">{{ checking ? 'Checking...' : 'Check for updates' }}</button>
-        <progress v-if="updating && progress !== null" max="100" :value="progress" aria-label="Update download progress" />
         <button v-if="updating && androidUpdate && androidUpdate.status !== 'installing'" class="control-button" @click="emit('cancelUpdate')">Cancel update</button>
       </div>
       <p v-if="androidUpdate?.status === 'downloading'" role="status">Downloaded {{ androidUpdate.downloaded.toLocaleString() }}{{ androidUpdate.total > 0 ? ` of ${androidUpdate.total.toLocaleString()}` : '' }} bytes.</p>
@@ -139,7 +139,6 @@ strong { color: var(--color-text); }
 .contributor-info strong { font-size: 14px; }
 .contributor-info > span { font-size: 12px; }
 .contributor-arrow { margin-left: auto; }
-progress { width: 100%; accent-color: var(--color-accent); }
 .changelog ul { padding-left: 18px; }
 .changelog li { padding: 6px 0; line-height: 1.5; }
 .release-notes { line-height: 1.7; overflow-wrap: anywhere; }
