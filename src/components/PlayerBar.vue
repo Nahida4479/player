@@ -3,7 +3,7 @@ import SeekSpectrum from './SeekSpectrum.vue';
 import AppIcon from './AppIcon.vue';
 import ArtistLink from './ArtistLink.vue';
 import AppSelect from './AppSelect.vue';
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import ResponsivePopup from "./ResponsivePopup.vue";
 import type { AudioDevice, Track } from "../types";
 import { formatDuration, formatSampleRate, formatTime } from "../utils/format";
@@ -64,6 +64,34 @@ const props = defineProps<{
   peerLabel: (peer: Peer) => string;
   isRemoteOutputPeer: (peer: Peer) => boolean;
 }>();
+
+const titleViewport = ref<HTMLElement>();
+const titleText = ref<HTMLElement>();
+const artistViewport = ref<HTMLElement>();
+const artistText = ref<HTMLElement>();
+const titleOverflow = ref(0);
+const artistOverflow = ref(0);
+function measureTrackText() {
+  titleOverflow.value = Math.max(0, (titleText.value?.scrollWidth ?? 0) - (titleViewport.value?.clientWidth ?? 0));
+  artistOverflow.value = Math.max(0, (artistText.value?.scrollWidth ?? 0) - (artistViewport.value?.clientWidth ?? 0));
+}
+const textObserver = new ResizeObserver(measureTrackText);
+onMounted(() => {
+  for (const element of [titleViewport.value, titleText.value, artistViewport.value, artistText.value]) {
+    if (element) textObserver.observe(element);
+  }
+  measureTrackText();
+});
+watch(() => [props.currentTrack.title, props.currentTrack.artist], async () => {
+  titleOverflow.value = 0;
+  artistOverflow.value = 0;
+  await nextTick();
+  measureTrackText();
+});
+onUnmounted(() => textObserver.disconnect());
+function marqueeStyle(overflow: number) {
+  return { '--marquee-distance': `${-overflow}px`, '--marquee-duration': `${Math.max(8, overflow / 25 + 4)}s` };
+}
 
 const emit = defineEmits<{
   openDetail: [];
@@ -488,9 +516,11 @@ onUnmounted(() => {
         willChange: 'transform',
       }" />
       <div class="track-meta">
-        <div class="track-name"><span class="marquee-text">{{ currentTrack.title }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ currentTrack.title }}</span></div>
-        <div class="track-artist">
-          <ArtistLink :artist="nowPlaying?.artist" @open="emit('openArtist', $event)">{{ currentTrack.artist }}</ArtistLink>
+        <div ref="titleViewport" class="track-name track-text-viewport">
+          <span ref="titleText" class="footer-marquee-text" :class="{ 'is-overflowing': titleOverflow > 1 && !reduceMotion }" :style="marqueeStyle(titleOverflow)">{{ currentTrack.title }}</span>
+        </div>
+        <div ref="artistViewport" class="track-artist track-text-viewport">
+          <span ref="artistText" class="footer-marquee-text" :class="{ 'is-overflowing': artistOverflow > 1 && !reduceMotion }" :style="marqueeStyle(artistOverflow)"><ArtistLink :artist="nowPlaying?.artist" @open="emit('openArtist', $event)">{{ currentTrack.artist }}</ArtistLink></span>
         </div>
       </div>
       <button class="icon-btn like-button" :class="{ green: isLiked }" :disabled="!nowPlaying || nowPlaying.id <= 0 || likePending" :aria-busy="likePending" :title="isLiked ? 'Unlike' : 'Like'" :aria-pressed="isLiked" @click.stop="emit('toggleLike')">
@@ -954,9 +984,6 @@ onUnmounted(() => {
 .track-name {
   font-size: var(--fs-player-title);
   font-weight: 600;
-  overflow: hidden;
-  mask-image: linear-gradient(to right, transparent 0%, black 5%, black 85%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 85%, transparent 100%);
 }
 .track-artist {
   font-size: var(--fs-player-meta);
@@ -1280,17 +1307,23 @@ onUnmounted(() => {
   text-align: center;
 }
 
-.marquee-text {
+.track-text-viewport { overflow: hidden; white-space: nowrap; }
+.footer-marquee-text {
   display: inline-block;
+  width: max-content;
   white-space: nowrap;
-  animation: marquee 14s linear 2s infinite;
+  vertical-align: top;
+  animation: none;
 }
-
-@keyframes marquee {
-  0% { transform: translateX(0); }
-  15% { transform: translateX(0); }
-  85% { transform: translateX(-50%); }
-  100% { transform: translateX(-50%); }
+.footer-marquee-text.is-overflowing {
+  animation: footer-marquee var(--marquee-duration) ease-in-out infinite alternate;
+}
+@keyframes footer-marquee {
+  0%, 15% { transform: translateX(0); }
+  85%, 100% { transform: translateX(var(--marquee-distance)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .footer-marquee-text.is-overflowing { animation: none; }
 }
 
 @media (max-width: 768px) {

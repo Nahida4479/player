@@ -179,6 +179,7 @@ These screenshots were captured with the built-in demo mode. Click any image to 
 - Settings page for library tools, audio output, device identity and sync, Soulseek, and appearance (theme, accent color, gradient, tint, reduced motion).
 - Appearance includes independent **Footer live spectrum** and **Seek waveform** switches, both on by default and saved on this device. Disabling seek waveforms keeps ordinary played/unplayed seek progress and background waveform caching; reduced motion only pauses live/decorative visuals, not static seek waveforms.
 - Seek progress moves smoothly between playback status updates without extra backend polling; pausing freezes it and seeking jumps directly to the selected position.
+- Footer track titles and artists scroll independently only when they exceed their available width, travelling just far enough to reveal the end before returning. Fitting text stays still; reduced motion disables this scrolling, and artist names remain clickable.
 - Optional Discord Rich Presence on desktop, off by default.
 - About section with version info, update checks, an embedded changelog, contributors, and third-party licenses.
 - Demo mode with a seeded library (`--demo`), used for the screenshots above.
