@@ -4120,6 +4120,9 @@ onUnmounted(() => {
         @nav-back="navBack"
         @nav-forward="navForward"
       >
+        <template v-if="activeNav === 'home'" #actions>
+          <button class="control-button control-button-compact import-files-action" @click="uploadFiles"><AppIcon name="folder" /> Add files</button>
+        </template>
         <template v-if="activeNav === 'playlists' && playlistTab === 'smart' && editingSP" #title>
           <input v-model="editingSP.name" class="page-title-input" aria-label="Playlist name" placeholder="Playlist name" @input="saveSP()" @click.stop />
         </template>
@@ -4131,8 +4134,7 @@ onUnmounted(() => {
           <section>
             <div class="section-head">
               <h2>{{ !libraryLoading && libraryTotal === 0 ? 'Get started' : 'Recently played' }}</h2>
-              <div class="section-actions"><button v-if="libraryTotal > 0" class="control-button control-button-compact import-files-action" @click="uploadFiles"><AppIcon name="folder" /> Add files</button>
-              <a class="show-all" href="#" @click.prevent="activeNav = 'history'; loadHistory()">Show all</a></div>
+              <a class="show-all" href="#" @click.prevent="activeNav = 'history'; loadHistory()">Show all</a>
             </div>
             <div v-if="libraryLoading" class="library-empty">Loading…</div>
             <div
@@ -6183,11 +6185,14 @@ section h2 { font-size: var(--fs-h2); font-weight: 800; margin-bottom: var(--spa
 .modal-copy strong { color: var(--color-text); }
 .field {
   display: flex; flex-direction: column; gap: var(--space-1);
+  min-width: 0;
 }
 .field > span {
   font-size: var(--fs-field-label); font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .03em;
 }
 .field input {
+  min-width: 0;
+  width: 100%;
   background: var(--color-surface-hover); border: none; border-radius: 4px;
   color: var(--color-text); font-size: var(--fs-field-input); padding: var(--space-3) var(--space-3); outline: none;
   min-height: 42px;
@@ -6348,8 +6353,8 @@ section h2 { font-size: var(--fs-h2); font-weight: 800; margin-bottom: var(--spa
   height: 4px;
   background: var(--color-surface-hover);
   border-radius: 2px;
-  margin-bottom: var(--space-3);
-  overflow: hidden;
+  margin-bottom: calc(var(--space-3) + 1.5em);
+  font-size: var(--fs-powered-by);
 }
 .log-progress-bar {
   height: 100%;
@@ -6539,42 +6544,6 @@ section h2 { font-size: var(--fs-h2); font-weight: 800; margin-bottom: var(--spa
 
 /* ── Responsive: phones ── */
 @media (max-width: 480px) {
-  .app {
-    --fs-nav: 14px;
-    --fs-h2: 18px;
-    --fs-section-link: 10px;
-    --fs-card-title: 11px;
-    --fs-card-meta: 10px;
-    --fs-player-title: 11px;
-    --fs-player-meta: 9px;
-    --fs-input: 11px;
-    --fs-empty: 12px;
-    --fs-eyebrow: 10px;
-    --fs-group: 11px;
-    --fs-track-side: 11px;
-    --fs-track-title: 12px;
-    --fs-track-meta: 10px;
-    --fs-badge: 9px;
-    --fs-modal-title: 15px;
-    --fs-field-label: 10px;
-    --fs-field-input: 12px;
-    --fs-button: 11px;
-    --fs-dropdown-label: 10px;
-    --fs-dropdown-item: 12px;
-    --fs-queue-title: 11px;
-    --fs-queue-meta: 9px;
-    --fs-queue-dur: 10px;
-    --fs-status-pill: 11px;
-    --fs-powered-by: 9px;
-    --fs-body-sm: 10px;
-    --fs-body-md: 11px;
-    --fs-peer-title: 12px;
-    --fs-peer-meta: 10px;
-    --fs-control: 10px;
-    --fs-detail-title: 16px;
-    --fs-detail-artist: 12px;
-    --fs-detail-time: 10px;
-  }
 
   .card-list { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: var(--space-3); }
 

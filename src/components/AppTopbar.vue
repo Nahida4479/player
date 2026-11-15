@@ -28,6 +28,7 @@ const emit = defineEmits<{
       <h1 :title="title"><slot name="title">{{ title }}</slot></h1>
       <p v-if="subtitle" :title="subtitle">{{ subtitle }}</p>
     </div>
+    <div v-if="$slots.actions" class="topbar-actions"><slot name="actions" /></div>
   </header>
 </template>
 
@@ -48,6 +49,7 @@ const emit = defineEmits<{
   flex-shrink: 0;
 }
 .page-heading { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.topbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--control-gap); margin-left: auto; flex-shrink: 0; }
 .page-heading h1 { color: var(--color-text); font-size: 24px; font-weight: 800; letter-spacing: -.5px; line-height: 1.25; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .page-heading p { color: var(--color-text-muted); font-size: 13px; line-height: 1.5; margin: var(--space-1) 0 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .arrow-btn {
@@ -90,6 +92,8 @@ const emit = defineEmits<{
   }
   .page-heading h1 { font-size: 20px; }
   .page-heading p { font-size: 12px; }
-  .topbar.has-page-heading { display: grid; grid-template-columns: auto auto minmax(0, 1fr); }
+  .topbar.has-page-heading { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; }
+  .topbar.has-page-heading .topbar-actions { grid-column: 4; justify-self: end; }
+  .topbar:not(.has-page-heading) { flex-wrap: wrap; }
 }
 </style>

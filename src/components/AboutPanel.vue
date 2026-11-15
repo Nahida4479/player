@@ -106,12 +106,14 @@ function openNoteLink(event: MouseEvent) {
 .about-panel { display: flex; flex-direction: column; gap: var(--section-gap); color: var(--color-text-muted); font-size: 14px; }
 .app-identity { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); }
 .app-summary { display: flex; align-items: center; gap: var(--space-4); flex: 1 1 280px; min-width: 0; }
+.app-summary > div { min-width: 0; overflow-wrap: anywhere; }
 .app-mark { display: block; width: 64px; height: 64px; flex-shrink: 0; object-fit: contain; }
 .repository-link { margin-left: auto; flex-shrink: 0; white-space: nowrap; }
 h3 { color: var(--color-text); font-size: 16px; margin: 0 0 var(--space-1); }
 .app-identity h3 { font-size: 24px; }
 p { line-height: 1.6; margin: 0; }
 .info-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-4); padding-bottom: var(--space-4); border-bottom: 1px solid var(--color-border); }
+.info-row > * { min-width: 0; overflow-wrap: anywhere; }
 strong { color: var(--color-text); }
 .update-card {
   display: flex;
@@ -135,12 +137,12 @@ strong { color: var(--color-text); }
 .contributor-link:is(:hover, :active) { color: var(--color-text); }
 .contributor-avatar { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: color-mix(in srgb, var(--color-accent) 15%, var(--color-surface)); color: var(--color-accent-text); font-size: 16px; font-weight: 700; flex-shrink: 0; }
 .contributor-avatar img { display: block; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
-.contributor-info { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.contributor-info { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; overflow-wrap: anywhere; }
 .contributor-info strong { font-size: 14px; }
 .contributor-info > span { font-size: 12px; }
 .contributor-arrow { margin-left: auto; }
 .changelog ul { padding-left: var(--space-6); }
-.changelog li { padding: var(--space-2) 0; line-height: 1.5; }
+.changelog li { padding: var(--space-2) 0; line-height: 1.5; overflow-wrap: anywhere; }
 .release-notes { line-height: 1.7; overflow-wrap: anywhere; }
 .release-notes :deep(a) { color: var(--color-accent-text); }
 </style>

@@ -171,6 +171,7 @@ const visibleTracks = computed(() =>
 <style scoped>
 .status {
   color: var(--color-text-muted);
+  overflow-wrap: anywhere;
   padding: var(--space-4) 0;
 }
 .artist-section {
@@ -178,6 +179,7 @@ const visibleTracks = computed(() =>
 }
 .section-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-4);
@@ -195,6 +197,8 @@ const visibleTracks = computed(() =>
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+  min-height: 40px;
+  padding: var(--space-2) 0;
 }
 .show-all:hover { color: var(--color-text); text-decoration: underline; }
 

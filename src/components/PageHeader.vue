@@ -83,9 +83,11 @@ const previewOpen = ref(false);
 .page-details {
   font-size: 14px;
   color: var(--color-text-muted);
+  overflow-wrap: anywhere;
 }
 .page-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--control-gap);
   margin-top: var(--space-2);
 }

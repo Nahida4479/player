@@ -114,6 +114,7 @@ const coverGradient = computed(() => placeholderCoverColors(tracks.value[0]?.fil
 
 .status {
   color: var(--color-text-muted);
+  overflow-wrap: anywhere;
   padding: var(--space-4) 0;
 }
 .tracklist {

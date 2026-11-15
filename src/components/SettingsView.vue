@@ -327,7 +327,7 @@ p { color: var(--color-text-muted); font-size: 13px; line-height: 1.65; margin: 
   .settings-subsections-enter-active, .settings-subsections-leave-active, .settings-nav .settings-subsections-arrow { transition: none; }
 }
 .settings-nav-icon { color: var(--color-accent-text); }
-.nav-copy { flex: 1; }
+.nav-copy { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .nav-description, .nav-chevron { display: none; }
 .local-note { font-size: 11px; padding: var(--section-gap) var(--space-3) 0; }
 .update-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); }
@@ -354,6 +354,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--color-accen
 .notice { border-radius: 8px; padding: var(--panel-padding); margin-bottom: var(--section-gap); }
 .notice strong { font-size: 13px; display: block; margin-bottom: var(--space-1); }
 .device-preview { display: flex; align-items: center; gap: var(--space-4); padding: var(--panel-padding); margin-top: var(--section-gap); border-radius: 8px; }
+.device-preview > div { min-width: 0; overflow-wrap: anywhere; }
 .device-preview strong { font-size: 15px; overflow-wrap: anywhere; }
 .device-emoji { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; background: var(--color-surface); font-size: 26px; flex-shrink: 0; }
 fieldset { border: 0; padding: 0; margin: var(--section-gap) 0 0; }

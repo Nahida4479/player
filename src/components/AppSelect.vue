@@ -26,6 +26,7 @@ const selectAttrs = computed(() => {
 .app-select { position: relative; display: inline-flex; max-width: 100%; vertical-align: middle; }
 .app-select select {
   width: 100%;
+  min-width: 0;
   min-height: inherit;
   color: inherit;
   line-height: 1.2;
@@ -36,8 +37,9 @@ const selectAttrs = computed(() => {
   transition: border-color .15s, color .15s;
 }
 .app-select select:disabled { opacity: .5; cursor: default; }
+.app-select select:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
 .app-select option { background: var(--color-surface); color: var(--color-text); }
-.app-select-chevron { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); }
+.app-select-chevron { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); pointer-events: none; }
 .app-select select:disabled + .app-select-chevron { opacity: .5; }
 
 .app-select-outlined { min-height: 40px; color: var(--color-text-muted); }

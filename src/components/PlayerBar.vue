@@ -532,7 +532,7 @@ onUnmounted(() => {
         @close="emit('update:showQueueMenu', false)"
       >
         <template #trigger>
-          <button class="icon-btn" title="Queue" @click.stop="emit('toggleQueueMenu')">
+          <button class="icon-btn" title="Queue" :aria-expanded="showQueueMenu" @click.stop="emit('toggleQueueMenu')">
             <AppIcon name="queue" :size="16" />
           </button>
         </template>
@@ -554,6 +554,10 @@ onUnmounted(() => {
             v-for="(track, i) in queue"
             :key="i"
             class="queue-item"
+            role="button"
+            tabindex="0"
+            @keydown.enter.self.prevent="emit('jumpToQueueItem', i)"
+            @keydown.space.self.prevent="emit('jumpToQueueItem', i)"
             @click="emit('jumpToQueueItem', i)"
           >
             <CoverImage class="queue-item-cover" :src="coverUrl(track.cover_hash, 'small')" :placeholder="placeholderCoverColors(track.file_hash)" />
@@ -574,7 +578,7 @@ onUnmounted(() => {
         @close="emit('update:showDeviceMenu', false)"
       >
         <template #trigger>
-          <button class="icon-btn" title="Output device" @click.stop="emit('toggleDeviceMenu')">
+          <button class="icon-btn" title="Output device" :aria-expanded="showDeviceMenu" @click.stop="emit('toggleDeviceMenu')">
             <AppIcon name="output-device" :size="16" />
           </button>
         </template>
@@ -584,6 +588,10 @@ onUnmounted(() => {
             v-for="dev in outputDevices"
             :key="dev.name"
             class="device-item device-item-local"
+            role="button"
+            tabindex="0"
+            @keydown.enter.self.prevent="emit('pickLocalDevice', dev.name, undefined, true)"
+            @keydown.space.self.prevent="emit('pickLocalDevice', dev.name, undefined, true)"
             @click="emit('pickLocalDevice', dev.name, undefined, true)"
           >
             <div class="device-item-main">
@@ -1137,6 +1145,7 @@ onUnmounted(() => {
   cursor: pointer;
 }
 .device-item:hover { background: var(--color-surface-hover); }
+.device-item:focus-visible, .queue-item:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -3px; }
 .device-item-local { gap: var(--space-3); }
 .device-item-main {
   display: flex;
@@ -1167,6 +1176,7 @@ onUnmounted(() => {
   padding: 0 var(--space-4) var(--space-3);
   color: var(--color-danger-text);
   font-size: var(--fs-body-sm);
+  overflow-wrap: anywhere;
 }
 .device-settings {
   display: flex;
