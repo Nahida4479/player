@@ -35,8 +35,9 @@ onUnmounted(() => { document.removeEventListener('pointerdown', outside); window
     <ResponsivePopup v-if="node.children?.length" :open="open" panel-class="plugin-status-popup" @close="close">
       <template #trigger><button ref="trigger" class="plugin-status-trigger" :aria-label="node.label" :title="node.label" aria-haspopup="dialog" :aria-expanded="open" @click.stop="open ? close() : open = true"><PluginImage :manifest="manifest" monochrome tint="currentColor" /></button></template>
       <section :data-plugin-status-menu="id" role="dialog" :aria-label="node.title || manifest.name" class="plugin-status-content">
-        <header><h3>{{ node.title || manifest.name }}</h3><button class="control-button" aria-label="Close plugin menu" @click="close">Close</button></header>
+        <header><h3>{{ node.title || manifest.name }}</h3></header>
         <slot />
+        <footer><button class="control-button" aria-label="Close plugin menu" @click="close">Close</button></footer>
       </section>
     </ResponsivePopup>
     <span v-else role="status" :aria-label="node.label" :title="node.label" class="plugin-status-static"><PluginImage :manifest="manifest" monochrome tint="currentColor" /></span>
@@ -44,18 +45,23 @@ onUnmounted(() => { document.removeEventListener('pointerdown', outside); window
 </template>
 <style scoped>
 .plugin-status { display: flex; align-items: center; justify-content: center; align-self: center; color: var(--color-accent-text); --plugin-icon-size: 19px; }
-.plugin-status-trigger,.plugin-status-static { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 0; background: transparent; color: inherit; }
-.plugin-status-trigger { cursor: pointer; border-radius: 4px; }
+.plugin-status-trigger,.plugin-status-static { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--color-surface-hover); border-radius: 20px; background: var(--color-surface); color: inherit; }
+.plugin-status-trigger { cursor: pointer; }
 .plugin-status-trigger:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 .plugin-status-active .plugin-status-trigger :deep(.plugin-image),.plugin-status-active .plugin-status-static :deep(.plugin-image) { animation: plugin-status-pulse 1.4s ease-in-out infinite; }
-.plugin-status-error { color: var(--color-danger-text); }
-.plugin-status-success { color: #39b86b; }
-.plugin-status-content { padding: var(--space-4); color: var(--color-text); overflow-wrap: anywhere; }
-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-4); }
+.plugin-status-error { color: var(--color-text-muted); }
+.plugin-status-success { color: var(--color-accent-text); }
+.plugin-status-content { box-sizing: border-box; min-width: 0; max-width: 100%; padding: var(--space-4); color: var(--color-text); overflow-wrap: anywhere; }
+header { margin-bottom: var(--space-4); }
 h3 { margin: 0; }
+footer { display: flex; justify-content: flex-end; margin-top: var(--space-4); }
+.plugin-status-content :deep(.plugin-group),.plugin-status-content :deep(.plugin-results) { min-width: 0; }
+.plugin-status-content :deep(.plugin-result) { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; min-width: 0; }
+.plugin-status-content :deep(.plugin-result-actions) { grid-column: 1 / -1; width: auto; min-width: 0; justify-content: flex-start; }
+.plugin-status-content :deep(.control-button) { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 @keyframes plugin-status-pulse { 50% { opacity: .35; } }
 @media(prefers-reduced-motion: reduce) { .plugin-status-active .plugin-status-trigger :deep(.plugin-image),.plugin-status-active .plugin-status-static :deep(.plugin-image) { animation: none; } }
 </style>
 <style>
-.responsive-popup-desktop.plugin-status-popup { width: min(380px, calc(100vw - 24px)); max-width: calc(100vw - 24px); }
+.responsive-popup-desktop.plugin-status-popup { box-sizing: border-box; width: min(380px, calc(100vw - 24px)); min-width: 0; max-width: calc(100vw - 24px); }
 </style>

@@ -6,6 +6,13 @@ and independently installed Rust packages. Current contracts: Plugin API 2, C AB
 Plugin author guide: [player-plugins documentation](https://github.com/NoName-Audio/player-plugins/blob/main/docs/README.md).
 Packages and SDK: [NoName-Audio/player-plugins](https://github.com/NoName-Audio/player-plugins).
 
+Installed plugins show a primary **Update** action when the fetched catalog has a
+strictly newer semantic version supported on the current platform. Refresh the
+catalog to check again. Updating opens the same permission and fingerprint review
+as installation; approval replaces the package while retaining settings, secrets,
+and the previous enabled state. **Uninstall** remains a separate action. Missing
+or invalid versions do not offer updates, and build metadata alone is not newer.
+
 On Android, select **Install** in the catalog to download the APK inside Player
 and open Android’s system confirmation. If requested, allow Player to install
 unknown apps and return to Player. Android installation does not grant plugin
@@ -83,4 +90,20 @@ compact. Empty/null UI creates no element. Rendering is globally limited to four
 native attachment calls, coalesces queued updates per attachment instance, and
 discards obsolete context/revision/generation/unmount responses. Actions retain
 the host-generated instance/context scope separately from plugin payload fields.
+
+Status popups keep track details within the available width, wrapping long names
+and placing result actions below the details on desktop and mobile. This layout
+is scoped to status menus; ordinary plugin search results keep their row layout.
+Success status icons use the theme accent, while error/inactive icons use muted
+text. The popup's Close action follows its content.
+On mobile, player status icons form a vertical tray immediately above Activity
+at the bottom-right safe-area-aware dock. Desktop keeps the horizontal footer
+tray. Moving between layouts relocates the same plugin panels rather than
+mounting a second set or duplicating their polling.
+Each status icon, interactive or static, has its own Activity-style surface and
+border while preserving its status color and 32px footprint.
+
+Refreshing the local library, including after saving a plugin search result,
+keeps provider search panels mounted. Their results, pagination, and pending
+actions remain intact without automatically issuing another provider search.
 

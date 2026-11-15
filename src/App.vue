@@ -1291,18 +1291,25 @@ async function openHomePinnedItem(item: HomePinnedPlaylistItem) {
   smartView.value = item.playlist as SmartPlaylist;
 }
 
-async function playHomePinnedItem(item: HomePinnedPlaylistItem) {
-  if (item.trackCount === 0) return;
-
+async function playHomePinnedItem(item: HomePinnedPlaylistItem, index = 0) {
+  if (item.trackCount === 0 || index < 0 || shouldSuppressTrackRowClick()) return;
+  const includeDuplicates = showDuplicateTracks.value;
   if (item.kind === 'regular') {
     const playlist = item.playlist as Playlist;
-    const tracks = filterDuplicateTracks(await invoke<Track[]>('get_playlist_tracks', { playlistId: playlist.id }));
-    if (tracks.length) playFromPlaylist(tracks, 0);
+    const page = await invoke<TrackPage>('get_playlist_tracks_page', {
+      playlistId: playlist.id, limit: LIBRARY_TRACK_PAGE_SIZE, offset: 0, includeDuplicates,
+    });
+    if (index < page.tracks.length) playFromPlaylist(page.tracks, index, {
+      kind: 'regular-playlist', playlistId: playlist.id, name: playlist.name,
+      includeDuplicates, hasMore: page.has_more,
+    });
     return;
   }
-
-  const tracks = (await getSmartPlaylistPage(item.playlist as SmartPlaylist, 100)).tracks;
-  if (tracks.length) playFromPlaylist(tracks, 0);
+  const playlist = item.playlist as SmartPlaylist;
+  const page = await getSmartPlaylistPage(playlist, LIBRARY_TRACK_PAGE_SIZE);
+  if (index < page.tracks.length) playFromPlaylist(page.tracks, index, {
+    kind: 'smart-playlist', playlist, includeDuplicates, hasMore: page.has_more,
+  });
 }
 
 async function openHomePinnedCard(item: HomePinnedPlaylistItem) {
@@ -4240,7 +4247,7 @@ onUnmounted(() => {
                 :key="`${item.key}:${track.id}`"
                 :track="track"
                 show-genre
-                @play="playPlaylistTrack(item.tracks, idx)"
+                @play="playHomePinnedItem(item, idx)"
               />
             </div>
             <div v-if="item.tracks.length > item.previewTracks.length" class="library-empty home-playlist-more">… and {{ item.tracks.length - item.previewTracks.length }} more</div>
@@ -4381,8 +4388,8 @@ onUnmounted(() => {
                 </div>
               </template>
 
-              <PluginSearch v-for="provider in pluginSearchProviders" :key="provider.key" :contribution="provider" :query="searchQuery" />
             </template>
+            <PluginSearch v-for="provider in pluginSearchProviders" :key="provider.key" :contribution="provider" :query="searchQuery" />
           </section>
         </template>
 
@@ -5103,6 +5110,7 @@ onUnmounted(() => {
 
     <!-- Index progress pill (clickable to open log) -->
     <div class="activity-dock" :class="{ 'activity-active': indexRunning || analysisRunning || libraryPageLoading }">
+      <div id="mobile-plugin-status" class="mobile-plugin-status" />
       <button
         type="button"
         class="identify-mini activity-mini"
@@ -5724,6 +5732,7 @@ onUnmounted(() => {
 section { margin-bottom: var(--section-gap); }
 /* Footer status panels are controls, not vertically spaced page sections. */
 .player-plugin-status { margin: 0; padding: 0; align-self: center; }
+.mobile-plugin-status { display: none; }
 section h2 { font-size: var(--fs-h2); font-weight: 800; margin-bottom: var(--space-4); }
 
 .section-head {
@@ -6528,12 +6537,16 @@ section h2 { font-size: var(--fs-h2); font-weight: 800; margin-bottom: var(--spa
 
   .activity-dock {
     right: var(--page-padding);
-    bottom: calc(130px + env(safe-area-inset-bottom));
-    display: none;
+    bottom: calc(140px + env(safe-area-inset-bottom));
+    display: flex;
     transform: none;
     z-index: 400;
   }
-  .activity-dock.activity-active { display: block; transform: none; }
+  .activity-dock { flex-direction: column; align-items: flex-end; gap: 8px; }
+  .activity-dock:not(.activity-active) > .activity-mini { display: none; }
+  .activity-dock.activity-active { display: flex; transform: none; }
+  .mobile-plugin-status { display: flex; }
+  .mobile-plugin-status:empty { display: none; }
   .activity-mini {
     border-radius: 20px;
     border-bottom: 1px solid var(--color-surface-hover);

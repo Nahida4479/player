@@ -111,7 +111,25 @@ export function createPluginHost(options: HostOptions) {
     operations.set(id, operation); try { await operation; } finally { operations.delete(id); }
   }
   async function retry(id: string) { if (plugins.value.find(p => p.manifest.id === id)?.enabled) await setEnabled(id, false); await setEnabled(id, true); }
-  async function install(content: string, fingerprint: string, source?: InstallSource) { await invoke('plugins_install', { content, fingerprint, source }); await refresh(); }
+  async function install(content: string, fingerprint: string, source?: InstallSource) {
+    const packageData: unknown = JSON.parse(content);
+    if (!packageData || typeof packageData !== 'object' || !('manifest' in packageData)) throw new Error('Invalid plugin package');
+    const manifest = packageData.manifest;
+    if (!manifest || typeof manifest !== 'object' || !('id' in manifest) || typeof manifest.id !== 'string') throw new Error('Invalid plugin manifest');
+    const id = manifest.id;
+    await operations.get(id);
+    const restoreEnabled = plugins.value.some(p => p.manifest.id === id && p.enabled);
+    if (restoreEnabled) await setEnabled(id, false);
+    try {
+      await invoke('plugins_install', { content, fingerprint, source });
+    } finally {
+      try {
+        if (restoreEnabled) await setEnabled(id, true);
+      } finally {
+        await refresh();
+      }
+    }
+  }
   async function uninstall(id: string) { terminate(id); await invoke('plugins_uninstall', { pluginId: id }); await refresh(); }
   // Coalesce playback snapshots while a native call is in flight.
   const latestPlayback = new Map<string, ReturnType<HostOptions['snapshot']>>();
