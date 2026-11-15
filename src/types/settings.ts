@@ -26,6 +26,7 @@ export interface DeviceSettings {
   emoji: string;
   device_name: string;
   sync_enabled: boolean;
+  normalize_volume: boolean;
 }
 
 export interface AboutInfo {

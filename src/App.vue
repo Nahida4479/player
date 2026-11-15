@@ -385,6 +385,9 @@ const indexCurrent = ref(0);
 const indexTotal = ref(0);
 const indexAdded = ref(0);
 const indexDone = ref(false);
+const analysisRunning = ref(false);
+const analysisCurrent = ref(0);
+const analysisTotal = ref(0);
 let indexDismissTimer: ReturnType<typeof setTimeout> | null = null;
 
 interface LogSession {
@@ -4010,6 +4013,12 @@ onMounted(() => {
       indexRunning.value = true;
       indexDone.value = false;
       if (indexDismissTimer) { clearTimeout(indexDismissTimer); indexDismissTimer = null; }
+    } else if (p.status === 'analyzing') {
+      analysisCurrent.value = p.current;
+      analysisTotal.value = p.total;
+      analysisRunning.value = true;
+    } else if (p.status === 'analyzed') {
+      analysisRunning.value = false;
     } else if (p.status === 'added') {
       ensureLocalSession();
       if (localSession) {
@@ -5087,7 +5096,7 @@ onUnmounted(() => {
     </Transition>
 
     <!-- Index progress pill (clickable to open log) -->
-    <div class="activity-dock" :class="{ 'activity-active': indexRunning || libraryPageLoading }">
+    <div class="activity-dock" :class="{ 'activity-active': indexRunning || analysisRunning || libraryPageLoading }">
       <button
         type="button"
         class="identify-mini activity-mini"
@@ -5104,10 +5113,14 @@ onUnmounted(() => {
           <span v-if="!indexDone">{{ indexCurrent }}/{{ indexTotal }}</span>
           <span v-else>+{{ indexAdded }}</span>
         </template>
+        <template v-else-if="analysisRunning">
+          <div class="identify-mini-spinner" />
+          <span>{{ analysisCurrent }}/{{ analysisTotal }}</span>
+        </template>
         <template v-else>
           <AppIcon name="activity" :size="15" />
         </template>
-        <span v-if="!indexRunning" class="activity-mini-label">Activity</span>
+        <span v-if="!indexRunning && !analysisRunning" class="activity-mini-label">Activity</span>
       </button>
     </div>
 

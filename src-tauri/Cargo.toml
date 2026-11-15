@@ -39,6 +39,7 @@ base64 = "0.22"
 blake3 = "1"
 encoding_rs = "0.8"
 symphonia = { version = "0.5", features = ["all"] }
+ebur128 = "0.1"
 opus = "0.4"
 rustfft = "6"
 rusty-chromaprint = "0.3"

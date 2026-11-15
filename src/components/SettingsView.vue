@@ -93,6 +93,8 @@ const sampleRates = computed(() => {
 const config = ref<DeviceSettings | null>(null);
 const configLoading = ref(false);
 const configError = ref('');
+const normalizeVolume = ref(true);
+const normalizeError = ref('');
 const deviceName = ref('');
 const emoji = ref('🎵');
 const identitySaving = ref(false);
@@ -119,11 +121,23 @@ async function loadConfig() {
   configError.value = '';
   try {
     config.value = await invoke<DeviceSettings>('get_device_settings');
+    normalizeVolume.value = config.value.normalize_volume;
     resetIdentity();
   } catch {
     configError.value = 'Could not load device settings. Please try again.';
   } finally {
     configLoading.value = false;
+  }
+}
+async function setNormalizeVolume(enabled: boolean) {
+  const previous = normalizeVolume.value;
+  normalizeVolume.value = enabled;
+  normalizeError.value = '';
+  try {
+    await invoke('set_normalize_volume', { enabled });
+  } catch {
+    normalizeVolume.value = previous;
+    normalizeError.value = 'Could not change volume normalization. Please try again.';
   }
 }
 function resetIdentity() {
@@ -227,6 +241,8 @@ onMounted(() => { void loadConfig(); });
             <p v-if="nativeSampleRate" class="help">Current track: {{ formatSampleRate(nativeSampleRate) }}</p>
             <p v-if="audioBusy" role="status">Switching audio output...</p>
             <p v-if="audioError" class="error" role="alert">{{ audioError }}</p>
+            <div class="setting-row"><div><h4>Normalize volume</h4><p>Play quiet and loud tracks at a similar level. Tracks are analyzed in the background.</p></div><SettingsToggle :model-value="normalizeVolume" label="Normalize volume" @update:model-value="setNormalizeVolume($event)" /></div>
+            <p v-if="normalizeError" class="error" role="alert">{{ normalizeError }}</p>
           </div>
         </template>
 
