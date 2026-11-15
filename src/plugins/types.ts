@@ -52,11 +52,12 @@ export interface PlaybackSnapshot {
 export interface PluginSource { sourceToken: string; resource: ResourceIdentity }
 export interface ResultAction { id: string; label: string; disabled?: boolean }
 export interface SearchItem {
-  id: string; title: string; subtitle?: string; coverHash?: string | null;
+  id: string; title: string; subtitle?: string; coverHash?: string | null; coverLoading?: boolean;
   status?: string; actions?: ResultAction[];
 }
 export interface UiNode {
-  type: 'group' | 'text' | 'input' | 'button' | 'toggle' | 'results';
+  type: 'group' | 'text' | 'input' | 'button' | 'toggle' | 'results' | 'status';
+  /** Status children open a responsive popup; title defaults to the manifest name. */
   title?: string; children?: UiNode[]; text?: string; tone?: string;
   key?: string; label?: string; value?: string | boolean; inputType?: 'text' | 'password';
   action?: string; payload?: Record<string, unknown>; disabled?: boolean; items?: SearchItem[];

@@ -19,6 +19,14 @@ limited to 64 MiB, validated before installation, and removed from private cache
 after the operation. Updates must retain the installed signing certificate;
 already-loaded native code still requires restarting Player after an APK update.
 
+Search result `coverHash` values use the host cover store. The plugin result
+renderer owns its thumbnail dimensions (36 px desktop, 32 px narrow screens);
+it must not depend on scoped track-row styles in the application shell.
+Result items may set `coverLoading: true` while artwork discovery or transfer is
+pending, including before `coverHash` exists. The renderer uses the player's
+existing striped image loader; plugins must clear this flag on success, missing
+artwork, or failure rather than infer loading from a missing hash.
+
 ## Component attachments
 
 Optional manifest `attachments` render native declarative UI before/after the
