@@ -45,8 +45,8 @@ onUnmounted(() => { document.removeEventListener('pointerdown', outside); window
 </template>
 <style scoped>
 .plugin-status { display: flex; align-items: center; justify-content: center; align-self: center; color: var(--color-accent-text); --plugin-icon-size: 19px; }
-.plugin-status-trigger,.plugin-status-static { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 0; background: transparent; color: inherit; }
-.plugin-status-trigger { cursor: pointer; border-radius: 4px; }
+.plugin-status-trigger,.plugin-status-static { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--color-surface-hover); border-radius: 20px; background: var(--color-surface); color: inherit; }
+.plugin-status-trigger { cursor: pointer; }
 .plugin-status-trigger:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 .plugin-status-active .plugin-status-trigger :deep(.plugin-image),.plugin-status-active .plugin-status-static :deep(.plugin-image) { animation: plugin-status-pulse 1.4s ease-in-out infinite; }
 .plugin-status-error { color: var(--color-text-muted); }

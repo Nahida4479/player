@@ -10,6 +10,12 @@ import { formatDuration, formatSampleRate, formatTime } from "../utils/format";
 import { coverUrl, placeholderCoverColors } from "../utils/covers";
 import CoverImage from "./CoverImage.vue";
 
+const mobileStatusQuery = window.matchMedia('(max-width: 768px)');
+const mobileStatus = ref(mobileStatusQuery.matches);
+const updateMobileStatus = () => { mobileStatus.value = mobileStatusQuery.matches; };
+onMounted(() => mobileStatusQuery.addEventListener('change', updateMobileStatus));
+onUnmounted(() => mobileStatusQuery.removeEventListener('change', updateMobileStatus));
+
 interface CurrentTrackSummary {
   title: string;
   artist: string;
@@ -524,7 +530,7 @@ onUnmounted(() => {
 
     <div class="player-right">
       <slot name="plugin-actions" />
-      <slot name="plugin-status" />
+      <Teleport defer to="#mobile-plugin-status" :disabled="!mobileStatus"><div class="player-status-tray"><slot name="plugin-status" /></div></Teleport>
       <ResponsivePopup
         :open="showQueueMenu"
         wrapper-class="queue-menu-wrapper"
@@ -1090,6 +1096,10 @@ onUnmounted(() => {
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-2);
+}
+.player-status-tray { display: flex; align-items: center; gap: var(--space-2); }
+@media (max-width: 768px) {
+  .player-status-tray { flex-direction: column; gap: 8px; }
 }
 .vol-wrap {
   display: flex;

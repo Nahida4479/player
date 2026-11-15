@@ -96,4 +96,14 @@ and placing result actions below the details on desktop and mobile. This layout
 is scoped to status menus; ordinary plugin search results keep their row layout.
 Success status icons use the theme accent, while error/inactive icons use muted
 text. The popup's Close action follows its content.
+On mobile, player status icons form a vertical tray immediately above Activity
+at the bottom-right safe-area-aware dock. Desktop keeps the horizontal footer
+tray. Moving between layouts relocates the same plugin panels rather than
+mounting a second set or duplicating their polling.
+Each status icon, interactive or static, has its own Activity-style surface and
+border while preserving its status color and 32px footprint.
+
+Refreshing the local library, including after saving a plugin search result,
+keeps provider search panels mounted. Their results, pagination, and pending
+actions remain intact without automatically issuing another provider search.
 
