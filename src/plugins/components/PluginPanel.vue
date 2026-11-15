@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { onUnmounted, ref, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import { usePluginHost, validateUiNode } from '../host';
 import type { UiNode } from '../types';
 import PluginTree from './PluginTree.vue';
 const props = defineProps<{ pluginId: string; viewId: string; context?: Record<string, unknown> }>();
 const host = usePluginHost();
+const owner = computed(() => host.plugins.value.find(p => p.manifest.id === props.pluginId));
+const manifest = computed(() => owner.value?.manifest);
 const node = ref<UiNode>(); const fields = ref<Record<string, string | boolean>>({});
 const error = ref(''); const busy = ref(false); let sequence = 0; let disposed = false;
 const pendingButton = ref<string>();
@@ -14,7 +16,7 @@ async function render() {
   try {
     const result = await host.call(props.pluginId, 'render', { viewId: props.viewId, context: props.context || {} });
     if (disposed || seq !== sequence) return;
-    node.value = validateUiNode(result); defaults(node.value); error.value = '';
+    node.value = result === null ? undefined : validateUiNode(result); if (node.value) defaults(node.value); error.value = '';
   } catch (e) { if (!disposed && seq === sequence) error.value = String(e); }
 }
 async function action(action: string, payload = {}, button?: string) {
@@ -26,9 +28,9 @@ async function action(action: string, payload = {}, button?: string) {
   } catch (e) { error.value = String(e); }
   finally { busy.value = false; pendingButton.value = undefined; }
 }
-watch(() => [props.pluginId, props.viewId, props.context], () => { fields.value = {}; node.value = undefined; error.value = ''; void render(); }, { immediate: true });
+watch(() => [props.pluginId, props.viewId, props.context, owner.value?.generation], () => { fields.value = {}; node.value = undefined; error.value = ''; void render(); }, { immediate: true });
 watch(host.revision, () => { if (!busy.value) void render(); });
 onUnmounted(() => { disposed = true; sequence++; });
 </script>
-<template><section class="plugin-panel" :aria-busy="busy"><p v-if="error" role="alert" class="plugin-panel-error">{{ error }}</p><PluginTree v-if="node" :node="node" :fields="fields" :busy="busy" :pending-button="pendingButton" @action="action" /><p v-else-if="!error" role="status">Loading…</p></section></template>
-<style scoped>.plugin-panel { min-width: 0; padding: 12px 0; }.plugin-panel-error { color: var(--color-danger-text); overflow-wrap: anywhere; }</style>
+<template><section class="plugin-panel" :aria-busy="busy"><p v-if="error" role="alert" class="plugin-panel-error">{{ error }}</p><PluginTree v-if="node" :node="node" :manifest="manifest" :fields="fields" :busy="busy" :pending-button="pendingButton" @action="action" /></section></template>
+<style scoped>.plugin-panel { min-width: 0; padding: var(--space-3) 0; }.plugin-panel-error { color: var(--color-danger-text); overflow-wrap: anywhere; }</style>

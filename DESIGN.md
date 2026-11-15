@@ -256,6 +256,8 @@ The current visual system combines music metadata with generated decoration:
 
 Spacing is shared across the shell, components, and plugin views through [src/styles/tokens.css](src/styles/tokens.css): `--space-1` through `--space-6` are 4, 8, 12, 16, 20, and 24px; `--space-8`, `--space-10`, and `--space-12` are 32, 40, and 48px. Use semantic `--page-padding` (24px desktop, 16px mobile), `--section-gap` (24px), `--panel-padding` (16px), and `--control-gap` (8px) for common layouts. Dense rows use 8/12px spacing; `--space-half` (2px) is reserved for compact metadata and badges. Artwork geometry, virtualized row dimensions, safe-area insets, and optical icon offsets are not spacing tokens. Interactive controls retain at least 40px targets.
 
+Footer plugin status panels explicitly reset content-section margins and panel padding so their icons align with Queue and Output without changing the position of the other player controls.
+
 Responsive typography tokens live on the document root at both tablet (768px) and phone (480px) breakpoints, so teleported popups and the expanded player inherit the same sizes as the shell. Shared styles provide a low-specificity accent `:focus-visible` outline for links, buttons, and button roles; individual controls can retain their custom focus treatment.
 
 Text and password fields in settings and declarative plugin views share `.form-field` and `.form-input` from [src/styles/form-controls.css](src/styles/form-controls.css). Use these classes for the same transparent background, strong border, spacing, typography, focus ring, and disabled state as Device name. Plugin fields are styled by the host rather than by individual plugins.
@@ -667,6 +669,7 @@ See [Soulseek plugin documentation](https://github.com/NoName-Audio/player-plugi
 - Duplicates: `find_duplicates` groups likely duplicates and `apply_dedup` flags them. Nothing is deleted from disk or the database; flagged tracks are hidden unless duplicates are shown.
 - Updates: on desktop the About section of Settings uses the signed Tauri updater from the frontend (`check()`, `downloadAndInstall()`, then `relaunch()`), with a `latest.json` manifest published to GitHub Releases. Android can't install through the Tauri updater, so [src-tauri/src/about.rs](src-tauri/src/about.rs) checks the GitHub releases of the repository the build came from (`about_check_updates`), and `about_do_update` downloads the APK into Downloads and opens it with the system installer. `about_info` provides version info for both.
 - [src-tauri/src/demo.rs](src-tauri/src/demo.rs): the `--demo` flag uses a separate data directory (`demo-data`, or `/sdcard/Player Demo` on Android) and an in-memory database seeded with demo tracks, playlists, and history, without discovery or the sync server. It's used for the README screenshots.
+  Initial demo files are indexed synchronously before metadata, playlists, and history are seeded; indexing failures propagate from setup. Regular persistent libraries retain background initial indexing. Run `cargo test --manifest-path src-tauri/Cargo.toml demo_initial_index_is_complete_before_metadata_seed --lib` for the demo startup regression.
 
 ## 12. Android Design
 

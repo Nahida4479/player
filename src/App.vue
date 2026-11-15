@@ -5297,7 +5297,7 @@ onUnmounted(() => {
       @pick-remote-device="pickRemoteDevice"
       @set-volume="applyVolume"
       @toggle-mute="toggleMute"
-    ><template #plugin-status><PluginPanel v-for="widget in pluginWidgets.filter(w => w.slot === 'player.status')" :key="widget.key" :plugin-id="widget.pluginId" :view-id="widget.id" /></template><template #plugin-actions><PluginPanel v-for="widget in pluginWidgets.filter(w => w.slot === 'player.actions')" :key="widget.key" :plugin-id="widget.pluginId" :view-id="widget.id" /></template></PlayerBar>
+    ><template #plugin-status><PluginPanel v-for="widget in pluginWidgets.filter(w => w.slot === 'player.status')" :key="widget.key" class="player-plugin-status" :plugin-id="widget.pluginId" :view-id="widget.id" /></template><template #plugin-actions><PluginPanel v-for="widget in pluginWidgets.filter(w => w.slot === 'player.actions')" :key="widget.key" :plugin-id="widget.pluginId" :view-id="widget.id" /></template></PlayerBar>
   </div>
 
   <!-- Player detail overlay — teleported to body to escape footer stacking context -->
@@ -5722,6 +5722,8 @@ onUnmounted(() => {
 .content::-webkit-scrollbar-track { background: transparent; }
 
 section { margin-bottom: var(--section-gap); }
+/* Footer status panels are controls, not vertically spaced page sections. */
+.player-plugin-status { margin: 0; padding: 0; align-self: center; }
 section h2 { font-size: var(--fs-h2); font-weight: 800; margin-bottom: var(--space-4); }
 
 .section-head {

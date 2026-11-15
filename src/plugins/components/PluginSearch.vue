@@ -56,4 +56,4 @@ onUnmounted(() => { disposed = true; sequence++; });
     </div>
   </section>
 </template>
-<style scoped>.plugin-search { margin-top: 24px; }.plugin-search .section-head { display: flex; justify-content: space-between; gap: 16px; }.plugin-search-pages { display: flex; justify-content: flex-end; gap: 12px; margin-top: 12px; }.plugin-search > p { color: var(--color-text-muted); }</style>
+<style scoped>.plugin-search { margin-top: var(--space-6); }.plugin-search .section-head { display: flex; justify-content: space-between; gap: var(--space-4); }.plugin-search-pages { display: flex; justify-content: flex-end; gap: var(--space-3); margin-top: var(--space-3); }.plugin-search > p { color: var(--color-text-muted); }</style>

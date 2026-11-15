@@ -300,6 +300,29 @@ pnpm install
 pnpm tauri dev
 ```
 
+### Plaintext plugin credentials (desktop opt-in)
+
+By default plugin secrets use OS credential storage. To keep **all plugin secrets
+in an unencrypted plaintext JSON file instead**, launch with an explicit path:
+
+```bash
+pnpm tauri dev -- -- --credentials-file /tmp/player-test-credentials.json
+```
+
+Relative paths are resolved against the app's working directory. The desktop
+executable also accepts `--credentials-file <path>` directly. No environment
+variable enables this mode. Missing or duplicate paths stop startup with an error.
+File mode never reads or migrates OS credentials; existing caches retain their
+normal plugin activation/reset behavior. An initially empty file therefore needs
+the Soulseek password entered again in the UI. The username remains in normal
+plugin settings, not this file.
+
+**Warning:** anyone who can read this file can read the passwords. Do not commit,
+share, or back it up insecurely. On Unix, newly created directories are private
+(`0700`) and files are forced to `0600` or access fails. Symlink and non-regular
+credential files are rejected, malformed JSON fails closed, and saves use atomic
+replacement. Existing OS credentials remain unchanged when this flag is omitted.
+
 ### Run in demo mode
 
 Demo mode uses a separate, seeded library and doesn't touch your own:

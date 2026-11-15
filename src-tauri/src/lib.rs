@@ -129,6 +129,11 @@ fn init_tracing() {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(desktop)]
+    if let Err(error) = plugins::secrets::initialize_from_args() {
+        eprintln!("Credential configuration error: {error}");
+        std::process::exit(2);
+    }
     // let _stream = play_sine(440.0);
     init_tracing();
     let demo_mode = demo::is_demo_mode_enabled();
