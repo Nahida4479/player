@@ -46,11 +46,13 @@ const theme = computed<Theme>(() => ({
 const onlyTintChanged = (next: Theme, previous: Theme) =>
   next.tint !== previous.tint && next.mode === previous.mode && next.accent === previous.accent && next.gradient === previous.gradient;
 
+const webkitGtk = /Linux/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent);
+
 function switchTheme(next: Theme, previous: Theme) {
   const root = document.documentElement;
   if (useAppearance().reducedMotion.value || onlyTintChanged(next, previous)) {
     applyTheme(next);
-  } else if (document.startViewTransition) {
+  } else if (document.startViewTransition && !webkitGtk) {
     document.startViewTransition(() => applyTheme(next));
   } else {
     root.classList.add('theme-transition');
