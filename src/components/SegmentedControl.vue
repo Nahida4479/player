@@ -18,17 +18,21 @@ const model = defineModel<T>({ required: true });
 
 <style scoped>
 .segmented-control {
-  display: inline-grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
+  display: inline-flex;
+  flex-wrap: wrap;
+  max-width: 100%;
   flex-shrink: 0;
-  gap: 2px;
-  padding: 3px;
+  gap: var(--space-1);
+  padding: var(--space-1);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-pill);
 }
 .segmented-control button {
-  padding: 6px 14px;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 40px;
+  padding: var(--space-2) var(--space-3);
+  overflow-wrap: anywhere;
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;

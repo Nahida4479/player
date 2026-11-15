@@ -27,10 +27,10 @@ onUnmounted(pause);
 </template>
 
 <style scoped>
-.app-toast { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 20px); right: 20px; z-index: 1200; display: flex; align-items: flex-start; gap: 12px; width: min(420px, calc(100vw - 40px)); padding: 16px; border: 1px solid var(--color-border-strong); border-radius: 12px; background: var(--color-surface); color: var(--color-text); box-shadow: 0 8px 32px color-mix(in srgb, var(--color-shadow) 24%, transparent); }
-.toast-icon { margin-top: 2px; flex-shrink: 0; color: var(--color-text-muted); }
+.app-toast { position: fixed; top: calc(env(safe-area-inset-top, 0px) + var(--page-padding)); right: var(--page-padding); z-index: 1200; display: flex; align-items: flex-start; gap: var(--control-gap); width: min(420px, calc(100vw - 2 * var(--page-padding))); padding: var(--panel-padding); border: 1px solid var(--color-border-strong); border-radius: 12px; background: var(--color-surface); color: var(--color-text); box-shadow: 0 8px 32px color-mix(in srgb, var(--color-shadow) 24%, transparent); }
+.toast-icon { margin-top: var(--space-1); flex-shrink: 0; color: var(--color-text-muted); }
 .app-toast p { flex: 1; min-width: 0; margin: 0; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
-.app-toast button { display: grid; place-items: center; flex-shrink: 0; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--color-text-muted); cursor: pointer; }
+.app-toast button { display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--color-text-muted); cursor: pointer; }
 .app-toast button:hover { background: var(--color-surface-hover); color: var(--color-text); }
 .app-toast button:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
 .toast-enter-active,.toast-leave-active { transition: opacity .15s, transform .15s; }

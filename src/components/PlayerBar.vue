@@ -703,7 +703,7 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: 1fr 2fr 1fr;
   align-items: center;
-  padding: 0 16px;
+  padding: 0 var(--space-4);
   overflow: visible;
   position: relative;
   isolation: isolate;
@@ -927,7 +927,7 @@ onUnmounted(() => {
 .player-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   min-width: 0;
 }
 .thumb {
@@ -947,20 +947,20 @@ onUnmounted(() => {
 .track-artist {
   font-size: var(--fs-player-meta);
   color: var(--color-text-muted);
-  margin-top: 3px;
+  margin-top: var(--space-1);
 }
 
 .player-center {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 14px 0;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
 }
 .ctrl-row {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .icon-btn {
@@ -968,7 +968,7 @@ onUnmounted(() => {
   border: none;
   color: var(--color-text-muted);
   cursor: pointer;
-  padding: 4px;
+  padding: var(--space-1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1027,7 +1027,7 @@ onUnmounted(() => {
 .progress-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   width: 100%;
 }
 .time {
@@ -1081,12 +1081,12 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: var(--space-2);
 }
 .vol-wrap {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
   width: 130px;
 }
 .bar.vol { flex: 1; }
@@ -1100,7 +1100,7 @@ onUnmounted(() => {
 .bar.vol:focus-within .bar-thumb { opacity: 1; }
 
 .dropdown-header {
-  padding: 10px 16px 6px;
+  padding: var(--space-3) var(--space-4) var(--space-2);
   font-size: var(--fs-dropdown-label);
   font-weight: 700;
   color: var(--color-text-muted);
@@ -1119,7 +1119,7 @@ onUnmounted(() => {
 }
 .device-list::-webkit-scrollbar-track { background: transparent; }
 .device-section-label {
-  padding: 10px 16px 6px;
+  padding: var(--space-3) var(--space-4) var(--space-2);
   color: var(--color-text-faint);
   font-size: var(--fs-eyebrow);
   font-weight: 700;
@@ -1129,19 +1129,19 @@ onUnmounted(() => {
 .device-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   color: var(--color-text);
   text-decoration: none;
   font-size: var(--fs-dropdown-item);
   cursor: pointer;
 }
 .device-item:hover { background: var(--color-surface-hover); }
-.device-item-local { gap: 10px; }
+.device-item-local { gap: var(--space-3); }
 .device-item-main {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
   width: 100%;
   min-width: 0;
 }
@@ -1164,16 +1164,16 @@ onUnmounted(() => {
   flex: 0 0 178px;
 }
 .device-error {
-  padding: 0 16px 12px;
+  padding: 0 var(--space-4) var(--space-3);
   color: var(--color-danger-text);
   font-size: var(--fs-body-sm);
 }
 .device-settings {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
   width: 100%;
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   border: 0;
   border-top: 1px solid var(--color-surface-hover);
   background: transparent;
@@ -1189,7 +1189,7 @@ onUnmounted(() => {
 .queue-now-label,
 .queue-next-label {
   display: block;
-  padding: 8px 16px 4px;
+  padding: var(--space-2) var(--space-4) var(--space-1);
   font-size: var(--fs-eyebrow);
   font-weight: 700;
   color: var(--color-text-muted);
@@ -1199,8 +1199,8 @@ onUnmounted(() => {
 .queue-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
   cursor: pointer;
   transition: background .1s;
 }
@@ -1220,7 +1220,7 @@ onUnmounted(() => {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-half);
 }
 .queue-item-title {
   font-size: var(--fs-queue-title);
@@ -1254,7 +1254,7 @@ onUnmounted(() => {
 }
 .queue-list::-webkit-scrollbar-track { background: transparent; }
 .queue-empty {
-  padding: 16px;
+  padding: var(--space-4);
   color: var(--color-text-muted);
   font-size: var(--fs-body-md);
   text-align: center;
@@ -1284,21 +1284,21 @@ onUnmounted(() => {
   .player {
     display: flex;
     flex-direction: column;
-    padding: 0 10px env(safe-area-inset-bottom);
+    padding: 0 var(--page-padding) env(safe-area-inset-bottom);
     justify-content: center;
-    gap: 8px;
+    gap: var(--space-2);
     overflow: hidden;
     min-width: 0;
   }
   .player-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     justify-content: flex-start;
     order: -1;
     min-width: 0;
-    margin-top: 10px;
-    padding: 0 15px;
+    margin-top: var(--space-3);
+    padding: 0;
     width: 100%;
   }
   .player-right { display: none; }
@@ -1309,7 +1309,7 @@ onUnmounted(() => {
   .player-left .track-meta {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-half);
     min-width: 0;
     flex-grow: 1;
   }
@@ -1325,16 +1325,16 @@ onUnmounted(() => {
   .player-center {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
     padding: 0;
     align-items: stretch;
     order: 0;
   }
   .ctrl-row {
-    gap: 8px;
+    gap: var(--space-2);
     justify-content: center;
   }
-  .icon-btn { padding: 6px; }
+  .icon-btn { padding: var(--space-2); min-width: 40px; min-height: 40px; }
   .play-btn {
     width: 40px;
     height: 40px;
@@ -1367,7 +1367,7 @@ onUnmounted(() => {
 @media (max-width: 480px) {
   .player {
     grid-template-columns: 1fr auto 1fr;
-    padding: 0 8px;
+    padding: 0 var(--page-padding);
     padding-bottom: env(safe-area-inset-top);
   }
   .player-left { width: 100%; }
@@ -1375,7 +1375,7 @@ onUnmounted(() => {
     width: 40px;
     height: 40px;
   }
-  .ctrl-row { gap: 8px; }
+  .ctrl-row { gap: var(--space-2); }
   .player-right :global(.device-menu-wrapper) { display: none; }
 }
 </style>

@@ -36,20 +36,20 @@ const emit = defineEmits<{
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  padding: 16px 24px;
-  padding-top: calc(16px + env(safe-area-inset-top));
+  gap: var(--space-5);
+  padding: var(--space-4) var(--page-padding);
+  padding-top: calc(var(--space-4) + env(safe-area-inset-top));
   flex-shrink: 0;
 }
 
 .nav-arrows {
   display: flex;
-  gap: 8px;
+  gap: var(--control-gap);
   flex-shrink: 0;
 }
 .page-heading { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .page-heading h1 { color: var(--color-text); font-size: 24px; font-weight: 800; letter-spacing: -.5px; line-height: 1.25; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.page-heading p { color: var(--color-text-muted); font-size: 13px; line-height: 1.5; margin: 4px 0 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.page-heading p { color: var(--color-text-muted); font-size: 13px; line-height: 1.5; margin: var(--space-1) 0 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .arrow-btn {
   width: 32px;
   height: 32px;
@@ -80,13 +80,13 @@ const emit = defineEmits<{
     border: none;
     color: var(--color-text);
     cursor: pointer;
-    padding: 6px;
+    padding: var(--space-2);
     flex-shrink: 0;
   }
   .topbar {
-    padding: 10px 14px;
-    padding-top: calc(10px + env(safe-area-inset-top));
-    gap: 8px;
+    padding: var(--space-3) var(--page-padding);
+    padding-top: calc(var(--space-3) + env(safe-area-inset-top));
+    gap: var(--space-2);
   }
   .page-heading h1 { font-size: 20px; }
   .page-heading p { font-size: 12px; }

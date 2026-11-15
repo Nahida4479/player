@@ -159,8 +159,8 @@ function onClick() {
 
 <style scoped>
 .track-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 8px 8px; border-radius: 4px;
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-2) var(--space-2); border-radius: 4px;
   cursor: pointer; user-select: none;
 }
 .track-row:hover { background: var(--color-card-hover) !important; }
@@ -179,11 +179,11 @@ function onClick() {
   width: 24px; text-align: right;
   font-size: var(--fs-track-side); color: var(--color-text-muted); flex-shrink: 0;
 }
-.track-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.track-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-half); }
 .track-title-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 0;
 }
 .track-title {
@@ -198,8 +198,8 @@ function onClick() {
 .track-playback-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 7px;
+  gap: var(--space-1);
+  padding: var(--space-half) var(--space-2);
   border-radius: 999px;
   font-size: var(--fs-badge);
   font-weight: 700;
@@ -224,7 +224,7 @@ function onClick() {
 
 .icon-btn {
   background: none; border: none;
-  color: var(--color-text-muted); cursor: pointer; padding: 4px;
+  color: var(--color-text-muted); cursor: pointer; padding: var(--space-1);
   display: flex; align-items: center; justify-content: center;
   border-radius: 4px;
   flex-shrink: 0;
@@ -238,7 +238,7 @@ function onClick() {
 .hover-action:focus-visible { opacity: 1; }
 .track-extra-actions { display: inline-flex; align-items: center; flex-shrink: 0; }
 .play-count {
-  display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px;
+  display: inline-flex; align-items: center; justify-content: flex-end; gap: var(--space-1);
   min-width: 36px;
   text-align: right;
   font-size: var(--fs-track-side);
@@ -247,7 +247,8 @@ function onClick() {
 }
 
 @media (max-width: 768px) {
-  .track-row { gap: 8px; padding: 6px 4px; }
+  /* Preserve the 44px mobile row geometry used by virtualized lists. */
+  .track-row { gap: var(--space-2); padding: 6px var(--space-1); }
   .track-cover-sm { width: 32px; height: 32px; }
   .track-num { display: none; }
   /* Keep liked hearts visible; other actions are in the long-press menu. */

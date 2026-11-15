@@ -171,22 +171,22 @@ const visibleTracks = computed(() =>
 <style scoped>
 .status {
   color: var(--color-text-muted);
-  padding: 16px 0;
+  padding: var(--space-4) 0;
 }
 .artist-section {
-  margin-bottom: 32px;
+  margin-bottom: var(--section-gap);
 }
 .section-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
 }
 .section-title {
   font-size: 20px;
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 .show-all {
   background: none;
@@ -200,7 +200,7 @@ const visibleTracks = computed(() =>
 
 .album-list {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   overflow-x: auto;
   scrollbar-width: none;
 }

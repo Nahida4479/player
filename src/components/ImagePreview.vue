@@ -54,7 +54,7 @@ useTransientHistoryEntry(() => !!props.src, () => emit('close'));
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px;
+  padding: var(--page-padding);
   background: var(--color-backdrop);
   cursor: zoom-out;
 }

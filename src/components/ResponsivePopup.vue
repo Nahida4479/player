@@ -169,7 +169,7 @@ onUnmounted(() => {
   position: fixed;
   background: var(--color-surface);
   border-radius: 4px;
-  padding: 4px 0;
+  padding: var(--space-1) 0;
   min-width: 190px;
   box-shadow: 0 16px 32px color-mix(in srgb, var(--color-shadow) 50%, transparent);
   z-index: 200;
@@ -244,8 +244,8 @@ onUnmounted(() => {
 .responsive-popup-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 12px 16px 14px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-4);
   flex-shrink: 0;
   background: var(--color-surface);
   border-top: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
@@ -267,7 +267,7 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+    padding: max(var(--space-3), env(safe-area-inset-top)) var(--space-3) max(var(--space-3), env(safe-area-inset-bottom));
     background: color-mix(in srgb, var(--color-shadow) 56%, transparent);
   }
 
@@ -287,7 +287,7 @@ onUnmounted(() => {
     transform: none;
     background: var(--color-surface);
     border-radius: 4px;
-    padding: 4px 0;
+    padding: var(--space-1) 0;
     box-shadow: 0 16px 32px color-mix(in srgb, var(--color-shadow) 50%, transparent);
   }
 

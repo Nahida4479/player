@@ -1,7 +1,7 @@
 .form-field {
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: var(--control-gap);
   min-width: 0;
   font-size: var(--fs-body-md);
   font-weight: 600;
@@ -11,7 +11,7 @@
   width: 100%;
   min-width: 0;
   min-height: 44px;
-  padding: 12px;
+  padding: var(--space-3);
   border: 1px solid var(--color-border-strong);
   border-radius: 5px;
   background: transparent;

@@ -47,8 +47,8 @@ const previewOpen = ref(false);
 .page-header {
   display: flex;
   align-items: flex-end;
-  gap: 24px;
-  margin-bottom: 24px;
+  gap: var(--space-6);
+  margin-bottom: var(--section-gap);
 }
 .page-cover {
   width: 180px;
@@ -65,7 +65,7 @@ const previewOpen = ref(false);
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2);
 }
 .page-kind {
   font-size: 12px;
@@ -86,8 +86,8 @@ const previewOpen = ref(false);
 }
 .page-actions {
   display: flex;
-  gap: 8px;
-  margin-top: 8px;
+  gap: var(--control-gap);
+  margin-top: var(--space-2);
 }
 .page-actions:empty { display: none; }
 :slotted(.play-button) {
@@ -95,7 +95,8 @@ const previewOpen = ref(false);
   color: var(--color-on-accent);
   border: none;
   border-radius: 999px;
-  padding: 8px 28px;
+  padding: var(--space-2) var(--space-6);
+  min-height: 40px;
   font-size: var(--fs-button);
   font-weight: 700;
   cursor: pointer;
@@ -103,7 +104,7 @@ const previewOpen = ref(false);
 :slotted(.play-button:hover) { filter: brightness(1.1); }
 
 @media (max-width: 640px) {
-  .page-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .page-header { flex-direction: column; align-items: flex-start; gap: var(--space-4); }
   .page-cover { width: 140px; height: 140px; }
   .page-title { font-size: 24px; }
 }

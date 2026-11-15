@@ -2,6 +2,21 @@
 :root {
   --font-body: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
+  --space-half: 2px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --page-padding: var(--space-6);
+  --section-gap: var(--space-6);
+  --panel-padding: var(--space-4);
+  --control-gap: var(--space-2);
+
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
@@ -45,6 +60,7 @@
 
 @media (max-width: 768px) {
   :root {
+    --page-padding: var(--space-4);
     --fs-nav: 15px;
     --fs-h2: 20px;
     --fs-section-link: 10px;

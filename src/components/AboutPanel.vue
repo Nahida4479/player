@@ -103,44 +103,44 @@ function openNoteLink(event: MouseEvent) {
 </template>
 
 <style scoped>
-.about-panel { display: flex; flex-direction: column; gap: 20px; color: var(--color-text-muted); font-size: 14px; }
-.app-identity { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 8px; }
-.app-summary { display: flex; align-items: center; gap: 16px; flex: 1 1 280px; min-width: 0; }
+.about-panel { display: flex; flex-direction: column; gap: var(--section-gap); color: var(--color-text-muted); font-size: 14px; }
+.app-identity { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); }
+.app-summary { display: flex; align-items: center; gap: var(--space-4); flex: 1 1 280px; min-width: 0; }
 .app-mark { display: block; width: 64px; height: 64px; flex-shrink: 0; object-fit: contain; }
 .repository-link { margin-left: auto; flex-shrink: 0; white-space: nowrap; }
-h3 { color: var(--color-text); font-size: 16px; margin: 0 0 8px; }
+h3 { color: var(--color-text); font-size: 16px; margin: 0 0 var(--space-1); }
 .app-identity h3 { font-size: 24px; }
 p { line-height: 1.6; margin: 0; }
-.info-row { display: flex; justify-content: space-between; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--color-border); }
+.info-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-4); padding-bottom: var(--space-4); border-bottom: 1px solid var(--color-border); }
 strong { color: var(--color-text); }
 .update-card {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: 20px;
+  gap: var(--space-4);
 }
 .contributor-link {
   border-radius: 8px;
 }
 .contributor-link:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
 .error { color: var(--color-danger-text); overflow-wrap: anywhere; }
-.links { display: flex; flex-wrap: wrap; gap: 12px; }
-.about-footer { display: flex; padding-top: 16px; border-top: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent); }
+.links { display: flex; flex-wrap: wrap; gap: var(--control-gap); }
+.about-footer { display: flex; padding-top: var(--space-4); border-top: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent); }
 .about-footer .text-link { font-size: 12px; font-weight: 400; color: var(--color-text-muted); }
-.text-link { display: inline-flex; align-items: center; gap: 6px; border: none; padding: 0; color: var(--color-text-muted); border-radius: 2px; }
+.text-link { display: inline-flex; align-items: center; gap: var(--control-gap); min-height: 40px; border: none; padding: 0; color: var(--color-text-muted); border-radius: 2px; }
 .text-link:enabled:is(:hover, :active) { background: transparent; color: var(--color-text); text-decoration: underline; }
-.contributors-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 12px; list-style: none; padding: 0; margin: 16px 0 0; }
-.contributor-link { display: flex; align-items: center; gap: 12px; padding: 16px; color: var(--color-text-muted); text-decoration: none; }
+.contributors-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: var(--space-3); list-style: none; padding: 0; margin: var(--space-4) 0 0; }
+.contributor-link { display: flex; align-items: center; gap: var(--space-3); padding: var(--panel-padding); color: var(--color-text-muted); text-decoration: none; }
 .contributor-link:is(:hover, :active) { color: var(--color-text); }
 .contributor-avatar { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: color-mix(in srgb, var(--color-accent) 15%, var(--color-surface)); color: var(--color-accent-text); font-size: 16px; font-weight: 700; flex-shrink: 0; }
 .contributor-avatar img { display: block; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
-.contributor-info { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.contributor-info { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
 .contributor-info strong { font-size: 14px; }
 .contributor-info > span { font-size: 12px; }
 .contributor-arrow { margin-left: auto; }
-.changelog ul { padding-left: 18px; }
-.changelog li { padding: 6px 0; line-height: 1.5; }
+.changelog ul { padding-left: var(--space-6); }
+.changelog li { padding: var(--space-2) 0; line-height: 1.5; }
 .release-notes { line-height: 1.7; overflow-wrap: anywhere; }
 .release-notes :deep(a) { color: var(--color-accent-text); }
 </style>

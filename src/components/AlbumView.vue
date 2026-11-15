@@ -114,7 +114,7 @@ const coverGradient = computed(() => placeholderCoverColors(tracks.value[0]?.fil
 
 .status {
   color: var(--color-text-muted);
-  padding: 16px 0;
+  padding: var(--space-4) 0;
 }
 .tracklist {
   display: flex;
@@ -126,9 +126,9 @@ const coverGradient = computed(() => placeholderCoverColors(tracks.value[0]?.fil
   text-transform: uppercase;
   letter-spacing: .04em;
   color: var(--color-text-muted);
-  padding: 8px 8px;
+  padding: var(--space-2) var(--space-2);
   border-bottom: 1px solid var(--color-border);
-  margin: 16px 0 4px;
+  margin: var(--space-4) 0 var(--space-1);
 }
 .disc-heading:first-child { margin-top: 0; }
 </style>
