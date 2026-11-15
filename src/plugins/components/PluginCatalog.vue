@@ -2,12 +2,12 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { usePluginHost } from '../host';
-import { catalogManifest, filterCatalog } from '../catalog';
+import { catalogManifest, filterCatalog, isPluginUpdate } from '../catalog';
 import type { CatalogEntry, PluginCatalogListing } from '../types';
 import PluginImage from './PluginImage.vue';
 import PluginMetadata from './PluginMetadata.vue';
 
-defineProps<{ busy: boolean; pendingId?: string }>();
+defineProps<{ busy: boolean; pendingId?: string; pendingAction?: 'review' | 'uninstall' }>();
 const emit = defineEmits<{ review: [entry: CatalogEntry]; uninstall: [id: string]; notify: [message: string] }>();
 const host = usePluginHost();
 const listing = ref<PluginCatalogListing>();
@@ -16,6 +16,7 @@ const loading = ref(false);
 let disposed = false;
 const entries = computed(() => filterCatalog(listing.value?.catalog.plugins || [], query.value));
 const installed = (id: string) => host.plugins.value.find(p => p.manifest.id === id);
+const update = (entry: CatalogEntry) => isPluginUpdate(installed(entry.id)?.manifest.version, entry.version);
 const supported = (entry: CatalogEntry) => !!listing.value && entry.platforms.includes(listing.value.platform);
 const tags = (entry: CatalogEntry) => [...new Set([...entry.platforms, ...entry.tags])];
 
@@ -54,7 +55,8 @@ onUnmounted(() => { disposed = true; });
       </div>
       <div class="catalog-footer">
         <ul class="catalog-tags" aria-label="Tags"><li v-for="tag in tags(entry)" :key="tag">{{ tag }}</li></ul>
-        <button type="button" class="control-button control-button-compact" :disabled="busy || (!installed(entry.id) && !supported(entry))" :aria-busy="pendingId === entry.id" @click="installed(entry.id) ? emit('uninstall', entry.id) : emit('review', entry)">{{ pendingId === entry.id ? (installed(entry.id) ? 'Uninstalling…' : listing?.platform === 'android' && entry.androidApkUrl ? 'Installing APK…' : 'Loading…') : installed(entry.id) ? 'Uninstall' : 'Install' }}</button>
+        <button v-if="installed(entry.id) && update(entry)" type="button" class="control-button control-button-primary control-button-compact" :disabled="busy || !supported(entry)" :aria-busy="pendingId === entry.id && pendingAction === 'review'" @click="emit('review', entry)">{{ pendingId === entry.id && pendingAction === 'review' ? (listing?.platform === 'android' && entry.androidApkUrl ? 'Installing APK…' : 'Loading update…') : 'Update' }}</button>
+        <button type="button" class="control-button control-button-compact" :disabled="busy || (!installed(entry.id) && !supported(entry))" :aria-busy="pendingId === entry.id && pendingAction === (installed(entry.id) ? 'uninstall' : 'review')" @click="installed(entry.id) ? emit('uninstall', entry.id) : emit('review', entry)">{{ pendingId === entry.id && pendingAction === (installed(entry.id) ? 'uninstall' : 'review') ? (installed(entry.id) ? 'Uninstalling…' : listing?.platform === 'android' && entry.androidApkUrl ? 'Installing APK…' : 'Loading…') : installed(entry.id) ? 'Uninstall' : 'Install' }}</button>
       </div>
     </article>
   </section>

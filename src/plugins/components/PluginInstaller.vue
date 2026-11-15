@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { usePluginHost } from '../host';
@@ -10,10 +10,12 @@ import PluginCatalog from './PluginCatalog.vue';
 import AppToast from '../../components/AppToast.vue';
 import AppIcon from '../../components/AppIcon.vue';
 
-const emit = defineEmits<{ done: [] }>();
+defineProps<{ reviewOnly?: boolean }>();
+const emit = defineEmits<{ done: []; busy: [value: boolean] }>();
 const host = usePluginHost();
 const error = ref('');
 const busy = ref('');
+watch(busy, value => emit('busy', Boolean(value)));
 const catalogPendingId = computed(() => busy.value.match(/^(?:catalog|uninstall):(.+)$/)?.[1]);
 const submissionUrl = 'https://github.com/NoName-Audio/player-plugins/blob/main/docs/catalog.md#publish';
 async function openSubmission() {
@@ -118,6 +120,7 @@ async function loadCatalogPlugin(entry: CatalogEntry) {
   }
   finally { busy.value = ''; }
 }
+defineExpose({ review: loadCatalogPlugin });
 async function install() {
   if (!preview.value || busy.value) return;
   try {
@@ -157,11 +160,11 @@ async function uninstall(id: string) {
       </template>
       <small class="fingerprint">BLAKE3: {{ preview.fingerprint }}</small>
       <div class="plugin-actions plugin-install-actions">
-        <button class="control-button control-button-primary" :disabled="Boolean(busy)" :aria-busy="busy === 'install'" @click="install">Install and grant these permissions</button>
+        <button class="control-button control-button-primary" :disabled="Boolean(busy)" :aria-busy="busy === 'install'" @click="install">{{ host.plugins.value.some(plugin => plugin.manifest.id === preview!.manifest.id) ? 'Update and grant these permissions' : 'Install and grant these permissions' }}</button>
         <button class="control-button" :disabled="Boolean(busy)" @click="resetPreview">Cancel</button>
       </div>
     </div>
-    <PluginCatalog :busy="Boolean(busy)" :pending-id="catalogPendingId" @review="loadCatalogPlugin" @uninstall="uninstall" @notify="error = $event" />
+    <PluginCatalog v-if="!reviewOnly" :busy="Boolean(busy)" :pending-id="catalogPendingId" :pending-action="busy.startsWith('uninstall:') ? 'uninstall' : 'review'" @review="loadCatalogPlugin" @uninstall="uninstall" @notify="error = $event" />
     <p v-if="catalogStatus" role="status">{{ catalogStatus }}</p>
     <div v-if="apkFallback" class="plugin-card">
       <p>Download and install {{ apkFallback.name }} manually, then find its APK plugin to review the connection.</p>
@@ -170,10 +173,10 @@ async function uninstall(id: string) {
         <button class="control-button" :disabled="Boolean(busy)" :aria-busy="busy === 'scan'" @click="scanApks">{{ busy === 'scan' ? 'Scanning…' : 'Find APK plugins' }}</button>
       </div>
     </div>
-    <div class="plugin-catalog-submission">
+    <div v-if="!reviewOnly" class="plugin-catalog-submission">
       <a :href="submissionUrl" @click.prevent="openSubmission">Add your plugin <AppIcon name="external-link" :size="14" /></a>
     </div>
-    <div class="plugin-install">
+    <div v-if="!reviewOnly" class="plugin-install">
       <h4>Manual installation</h4>
       <template v-if="android">
         <p>Install the extension APK on Android, then find it here.</p>
