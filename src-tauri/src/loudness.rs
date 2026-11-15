@@ -282,8 +282,11 @@ pub(crate) fn measure(path: &Path, start_secs: f64, end_secs: Option<f64>) -> Re
 
 fn analyze(path: &Path, is_segment: bool, start_secs: f64, end_secs: Option<f64>) -> Result<Loudness, Error> {
     if !is_segment {
-        if let Some(loudness) = tagged_loudness(path) {
-            return Ok(loudness);
+        if let Some(tagged) = tagged_loudness(path) {
+            if tagged.peak.is_some() || tagged.gain_db <= 0.0 {
+                return Ok(tagged);
+            }
+            return Ok(measure(path, start_secs, end_secs).unwrap_or(tagged));
         }
     }
     measure(path, start_secs, end_secs)
@@ -356,7 +359,10 @@ fn process_one(conn: &Mutex<Connection>, root: &Path) -> Result<bool, Error> {
     conn.lock().unwrap().execute(
         "UPDATE tracks
             SET loudness_lufs = ?1, gain_db = ?2, peak = ?3
-          WHERE id = ?4 AND file_hash IS ?5 AND COALESCE(modified_secs, 0) = ?6",
+          WHERE id = ?4 AND file_hash IS ?5 AND COALESCE(modified_secs, 0) = ?6
+            AND COALESCE(NULLIF(source_path, ''), path) = ?7
+            AND COALESCE(segment_start_secs, 0) = ?8
+            AND segment_end_secs IS ?9",
         params![
             loudness.lufs,
             loudness.gain_db,
@@ -364,6 +370,9 @@ fn process_one(conn: &Mutex<Connection>, root: &Path) -> Result<bool, Error> {
             pending.id,
             pending.hash,
             pending.modified,
+            pending.source,
+            pending.start,
+            pending.end,
         ],
     )?;
     Ok(true)
