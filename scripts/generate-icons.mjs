@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const run = (command, args) => execFileSync(command, args, { cwd: root, stdio: 'inherit' });
 const temporary = mkdtempSync(join(tmpdir(), 'player-icons-'));
+const androidBackground = '#20242C';
 try {
   run('magick', ['-version']);
   // Call the CLI directly: the package's tauri wrapper also synchronizes versions.
@@ -25,10 +26,10 @@ try {
     const legacy = Math.round(48 * scale);
     const size = Math.floor(legacy * 0.64);
     const launcher = join(directory, 'ic_launcher.png');
-    run('magick', [artwork, '-resize', `${size}x${size}`, '-gravity', 'center', '-background', 'none', '-extent', `${legacy}x${legacy}`, launcher]);
+    run('magick', [artwork, '-resize', `${size}x${size}`, '-gravity', 'center', '-background', 'none', '-extent', `${legacy}x${legacy}`, '-background', androidBackground, '-alpha', 'remove', '-alpha', 'off', launcher]);
     copyFileSync(launcher, join(directory, 'ic_launcher_round.png'));
   }
-  writeFileSync(join(resources, 'values/ic_launcher_background.xml'), '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n  <color name="ic_launcher_background">#00000000</color>\n</resources>\n');
+  writeFileSync(join(resources, 'values/ic_launcher_background.xml'), `<?xml version="1.0" encoding="utf-8"?>\n<resources>\n  <color name="ic_launcher_background">${androidBackground}</color>\n</resources>\n`);
   copyFileSync(join(resources, 'mipmap-anydpi-v26/ic_launcher.xml'), join(resources, 'mipmap-anydpi-v26/ic_launcher_round.xml'));
   const manifest = resolve(root, 'src-tauri/gen/android/app/src/main/AndroidManifest.xml');
   const xml = readFileSync(manifest, 'utf8');

@@ -150,6 +150,25 @@ pub fn run() {
     builder
         .setup(move |app| {
             use tauri::Manager;
+            // Bundled legacy icons acquire a background on macOS Tahoe. Use the
+            // original transparent artwork for the running app, as in development.
+            #[cfg(target_os = "macos")]
+            {
+                use objc2::{AllocAnyThread, MainThreadMarker};
+                use objc2_app_kit::{NSApplication, NSImage};
+                use objc2_foundation::NSData;
+
+                let main_thread = MainThreadMarker::new()
+                    .expect("Tauri setup must run on the main thread");
+                let data = NSData::with_bytes(include_bytes!("../icons/icon.png"));
+                let icon = NSImage::initWithData(NSImage::alloc(), &data)
+                    .ok_or("could not decode application icon")?;
+                // SAFETY: setup runs on the main thread and supplies a valid NSImage.
+                unsafe {
+                    NSApplication::sharedApplication(main_thread)
+                        .setApplicationIconImage(Some(&icon));
+                }
+            }
             #[cfg(target_os = "android")]
             let data_dir = if demo_mode {
                 std::path::PathBuf::from("/sdcard/Player Demo")
