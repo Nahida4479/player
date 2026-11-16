@@ -1466,6 +1466,7 @@ const settingsActionError = ref('');
 const settingsActionMessage = ref('');
 const libraryDataDir = ref<string | null>(null);
 let unlistenDragDrop: (() => void) | null = null;
+const fileDragActive = ref(false);
 
 const tracksByHash = computed<Record<string, Track>>(() => {
   const index: Record<string, Track> = {};
@@ -3832,10 +3833,10 @@ onMounted(() => {
   ensureLibraryDataDir().catch(() => {});
   void getCurrentWebviewWindow()
     .onDragDropEvent((event) => {
-      if (event.payload.type !== 'drop' || event.payload.paths.length === 0) return;
-      invoke<{ imported: number; skipped: number }>('import_dropped_files', {
-        paths: event.payload.paths,
-      }).catch((error) => {
+      const payload = event.payload;
+      fileDragActive.value = payload.type === 'enter' || payload.type === 'over';
+      if (payload.type !== 'drop' || payload.paths.length === 0) return;
+      void invoke('import_dropped_files', { paths: payload.paths }).catch((error) => {
         console.error('Failed to import dropped files:', error);
       });
     })
@@ -4095,6 +4096,9 @@ onUnmounted(() => {
 
 <template>
   <div class="app">
+    <div v-if="fileDragActive" class="file-drop-overlay" role="status" aria-live="polite">
+      <div class="file-drop-message"><AppIcon name="folder" :size="40" /><strong>Drop music files or folders</strong><span>Copy to your library · Originals stay in place</span></div>
+    </div>
     <Transition name="nav-overlay">
       <div v-if="showMobileNav" class="mobile-nav-overlay" @click="showMobileNav = false" />
     </Transition>
@@ -6979,4 +6983,8 @@ section h2 { font-size: var(--fs-h2); font-weight: 800; margin-bottom: var(--spa
 .modal { max-height: calc(100dvh - var(--space-8)); overflow-y: auto; }
 .status-pills, .activity-dock { max-width: calc(100vw - var(--page-padding) * 2); }
 .activity-mini-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-drop-overlay { position: fixed; inset: var(--space-3); z-index: 10000; display: grid; place-items: center; padding: var(--space-4); border: 2px dashed var(--color-accent); border-radius: 16px; background: color-mix(in srgb, var(--color-surface) 94%, transparent); color: var(--color-text); pointer-events: none; }
+.file-drop-message { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); text-align: center; }
+.file-drop-message .app-icon { color: var(--color-accent); }
+.file-drop-message span { color: var(--color-text-muted); }
 </style>

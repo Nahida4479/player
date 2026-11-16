@@ -11,6 +11,7 @@ mod file_rollback;
 pub mod identify;
 pub mod import;
 mod import_paths;
+mod indexing_service;
 pub mod library;
 pub mod playback;
 pub mod plugin_sources;
@@ -144,7 +145,8 @@ pub fn run() {
 
     #[cfg(target_os = "android")]
     let builder = builder.plugin(plugins::secrets::mobile_plugin())
-        .plugin(plugins::android::mobile_plugin());
+        .plugin(plugins::android::mobile_plugin())
+        .plugin(indexing_service::mobile_plugin());
 
     #[cfg(desktop)]
     let builder = builder

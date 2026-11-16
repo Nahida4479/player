@@ -1609,6 +1609,10 @@ fn emit_index_progress(
     )
 )]
 fn index_directory_async(conn: &Arc<Mutex<Connection>>, data_dir: &Path, app: &tauri::AppHandle) {
+    // All callers run on workers; never synchronously invoke Android from setup.
+    let Some(mut indexing_session) = crate::indexing_service::IndexingSession::begin() else {
+        return;
+    };
     // Collect all audio and cue files first.
     let files: Vec<PathBuf> = {
         #[cfg(feature = "tracy")]
@@ -1618,22 +1622,23 @@ fn index_directory_async(conn: &Arc<Mutex<Connection>>, data_dir: &Path, app: &t
         )
         .entered();
 
-        WalkDir::new(data_dir)
-            .into_iter()
-            .filter_map(|e| e.ok())
-            .filter(|e| e.file_type().is_file())
-            .filter(|e| !is_internal_library_path(data_dir, e.path()))
-            .filter(|e| {
-                let ext = e
-                    .path()
-                    .extension()
-                    .and_then(|x| x.to_str())
-                    .unwrap_or("")
-                    .to_ascii_lowercase();
-                is_audio_extension(&ext) || is_cue_extension(&ext)
-            })
-            .map(|e| e.into_path())
-            .collect()
+        let mut files = Vec::new();
+        for entry in WalkDir::new(data_dir) {
+            // Cancel before cleanup: interrupted walks must not delete unseen rows.
+            if !indexing_session.progress(0, 0) {
+                return;
+            }
+            let Ok(entry) = entry else { continue };
+            if !entry.file_type().is_file() || is_internal_library_path(data_dir, entry.path()) {
+                continue;
+            }
+            let ext = entry.path().extension().and_then(|x| x.to_str())
+                .unwrap_or("").to_ascii_lowercase();
+            if is_audio_extension(&ext) || is_cue_extension(&ext) {
+                files.push(entry.into_path());
+            }
+        }
+        files
     };
 
     crate::loudness::requeue_failed(&conn.lock().unwrap());
@@ -1684,6 +1689,9 @@ fn index_directory_async(conn: &Arc<Mutex<Connection>>, data_dir: &Path, app: &t
             Err(e) => eprintln!("[library] failed to index {}: {e}", path.display()),
         }
         drop(conn);
+        if !indexing_session.progress(i + 1, total) {
+            return;
+        }
 
         // Emit progress every 5 files or at the end.
         if (i + 1) % 5 == 0 || i + 1 == total {
@@ -1691,6 +1699,9 @@ fn index_directory_async(conn: &Arc<Mutex<Connection>>, data_dir: &Path, app: &t
         }
     }
 
+    if !indexing_session.progress(total, total) {
+        return;
+    }
     // Remove stale rows.
     {
         #[cfg(feature = "tracy")]

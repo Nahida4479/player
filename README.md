@@ -134,7 +134,27 @@ These screenshots were captured with the built-in demo mode. Click any image to 
 - Track editing and identification through AcoustID fingerprints.
 - Likes, play counts, history, and recent tracks.
 - Duplicate detection: flags duplicates without deleting anything.
-- Drag-and-drop import of files and folders.
+- Drag files or folders anywhere onto the app window to import music. A window-wide drop target appears while dragging; imports copy into the library without moving originals, with progress shown in Activity.
+
+On Android, native library scans use a separate **Library indexing** foreground
+notification and a partial wake lock while at least one scan is active; playback
+uses its own service. Discovery shows indeterminate progress, followed by file
+counts. Tapping the notification opens Player. Starting a scan must be permitted
+by Android's foreground-service rules: a background start can be rejected, in
+which case indexing reports a failure rather than running without protection.
+Android 15+ also limits the app's total background `dataSync` service time. On a
+timeout the notification and wake lock are removed immediately, and the native
+scan cancels at its next progress checkpoint (an in-flight file may finish first).
+Force-stop, process death, device power policy, and denied notifications can still
+interrupt or hide this work; the service is not automatically restarted. Reopen
+Player and explicitly reindex to resume; already committed unchanged files are
+skipped. Merely reopening an existing library does not automatically resume an
+interrupted scan.
+On Android 13+, the first scan started while Player is visible requests notification
+permission once. Denial does not prevent foreground indexing, but Android may hide
+its notification from the notification drawer; enable notifications in system app
+settings to restore visibility. A scan started before the activity is visible
+does not open a permission prompt from the background.
 
 ### Playback
 
