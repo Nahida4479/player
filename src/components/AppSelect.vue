@@ -23,9 +23,10 @@ const selectAttrs = computed(() => {
 </template>
 
 <style scoped>
-.app-select { position: relative; display: inline-flex; vertical-align: middle; }
+.app-select { position: relative; display: inline-flex; max-width: 100%; vertical-align: middle; }
 .app-select select {
   width: 100%;
+  min-width: 0;
   min-height: inherit;
   color: inherit;
   line-height: 1.2;
@@ -36,13 +37,14 @@ const selectAttrs = computed(() => {
   transition: border-color .15s, color .15s;
 }
 .app-select select:disabled { opacity: .5; cursor: default; }
+.app-select select:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
 .app-select option { background: var(--color-surface); color: var(--color-text); }
-.app-select-chevron { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); }
+.app-select-chevron { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); pointer-events: none; }
 .app-select select:disabled + .app-select-chevron { opacity: .5; }
 
-.app-select-outlined { min-height: 30px; color: var(--color-text-muted); }
+.app-select-outlined { min-height: 40px; color: var(--color-text-muted); }
 .app-select-outlined select {
-  padding: 5px 32px 5px 12px;
+  padding: var(--space-2) var(--space-8) var(--space-2) var(--space-3);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-pill);
   background: transparent;
@@ -54,7 +56,7 @@ const selectAttrs = computed(() => {
 
 .app-select-filled { min-height: 42px; color: var(--color-text); }
 .app-select-filled select {
-  padding: 10px 40px 10px 12px;
+  padding: var(--space-2) var(--space-10) var(--space-2) var(--space-3);
   border: none;
   border-radius: var(--radius-sm);
   background: var(--color-surface-hover);

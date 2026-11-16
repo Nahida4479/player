@@ -6,6 +6,73 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ApkPluginsTest {
+    /** Run against release host + independently minified Soulseek APK; never connects. */
+    @Test fun soulseekReleaseCallsUsePluginDependenciesAndSharedCallback() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val callbacks = mutableListOf<String>()
+        val runtime = InstalledApkRuntime(context) { _, method, _ ->
+            callbacks += method
+            val value: Any = when (method) {
+                "settings.get" -> JSONObject("{\"revision\":0,\"values\":{}}")
+                "secrets.has" -> false
+                "storage.staging" -> JSONObject().put("path", context.cacheDir.absolutePath)
+                else -> error("Unexpected offline Soulseek callback: $method")
+            }
+            JSONObject().put("ok", true).put("value", value).toString()
+        }
+        val descriptor = runtime.descriptor("dev.verncat.player.soulseek.plugin")
+        val app = requireNotNull(descriptor.pkg.applicationInfo)
+        val loader = PluginClassLoader(app.sourceDir, app.nativeLibraryDir, context.classLoader)
+        assertSame(kotlin.jvm.functions.Function2::class.java, loader.loadClass("kotlin.jvm.functions.Function2"))
+        assertSame(kotlin.Function::class.java, loader.loadClass("kotlin.Function"))
+        assertSame(android.app.Activity::class.java, loader.loadClass("android.app.Activity"))
+        assertThrows(ClassNotFoundException::class.java) { loader.loadClass("dev.verncat.player.NativeHostBridge") }
+        val args = ApkCallArgs().apply {
+            pluginId = descriptor.id; generation = 1; method = "activate"; argsJson = "{}"
+            binding = ApkBinding().apply {
+                packageName = descriptor.pkg.packageName; entryClass = descriptor.entry
+                certificateSha256 = descriptor.certificate; apkSha256 = descriptor.hash
+            }
+        }
+        try {
+            runtime.call(args)
+            args.method = "render"
+            assertEquals("Soulseek", runtime.call(args).getJSONObject("result").getString("title"))
+            assertTrue(callbacks.contains("settings.get"))
+            assertTrue(callbacks.contains("storage.staging"))
+        } finally { runtime.closeAll() }
+    }
+
+    @Test fun catalogApkProviderResolvesAndStreamsPrivateDownload() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val authority = "${context.packageName}.catalog-apks"
+        val provider = requireNotNull(context.packageManager.resolveContentProvider(authority, 0))
+        val general = requireNotNull(context.packageManager.resolveContentProvider("${context.packageName}.fileprovider", 0))
+        // Android keys local provider instances by component class, not authority.
+        assertNotEquals(general.name, provider.name)
+        assertFalse(provider.exported)
+        assertTrue(provider.grantUriPermissions)
+        val directory = java.io.File(context.cacheDir, "catalog-apks").apply { mkdirs() }
+        val file = java.io.File.createTempFile("provider-test-", ".apk", directory)
+        try {
+            val bytes = byteArrayOf(0x50, 0x4b, 0x03, 0x04, 0x00, 0x7f)
+            file.writeBytes(bytes)
+            val uri = androidx.core.content.FileProvider.getUriForFile(context, authority, file)
+            assertEquals("content", uri.scheme)
+            assertEquals(authority, uri.authority)
+            assertEquals("application/vnd.android.package-archive", context.contentResolver.getType(uri))
+            context.contentResolver.openInputStream(uri).use { input ->
+                assertArrayEquals(bytes, requireNotNull(input).readBytes())
+            }
+            val outside = java.io.File.createTempFile("not-catalog-", ".apk", context.cacheDir)
+            try {
+                assertThrows(IllegalArgumentException::class.java) {
+                    androidx.core.content.FileProvider.getUriForFile(context, authority, outside)
+                }
+            } finally { outside.delete() }
+        } finally { file.delete() }
+    }
+
     @Test fun callbackInterfaceRetainsItsReleaseAbi() {
         val type = kotlin.jvm.functions.Function2::class.java
         assertEquals("kotlin.jvm.functions.Function2", type.name)

@@ -5,7 +5,7 @@ import ImageLoader from '../../components/ImageLoader.vue';
 import { icons, type AppIconName } from '../../icons';
 import type { PluginManifest } from '../types';
 
-const props = defineProps<{ manifest: PluginManifest; monochrome?: boolean }>();
+const props = defineProps<{ manifest: PluginManifest; monochrome?: boolean; tint?: 'currentColor' }>();
 const tintId = `plugin-image-tint-${useId()}`;
 const failed = ref(false);
 const loaded = ref(false);
@@ -18,11 +18,11 @@ const fallback = computed<AppIconName>(() => {
 </script>
 
 <template>
-  <span class="plugin-image" :class="{ 'plugin-image-monochrome': monochrome }" aria-hidden="true">
+  <span class="plugin-image" :class="{ 'plugin-image-monochrome': monochrome, 'plugin-image-current-color': tint === 'currentColor' }" aria-hidden="true">
     <svg v-if="monochrome && manifest.image && !failed" class="plugin-image-filter" width="0" height="0" focusable="false">
       <defs>
         <filter :id="tintId" color-interpolation-filters="sRGB">
-          <feFlood style="flood-color: var(--color-accent-text)" />
+          <feFlood :style="{ floodColor: tint || 'var(--color-accent-text)' }" />
           <feComposite in2="SourceAlpha" operator="in" />
         </filter>
       </defs>
@@ -39,6 +39,7 @@ const fallback = computed<AppIconName>(() => {
 .image-pending { visibility: hidden; }
 @media(max-width: 600px) { .plugin-image { width: 44px; height: 44px; flex-basis: 44px; } }
 .plugin-image-monochrome { width: var(--plugin-icon-size, 19px); height: var(--plugin-icon-size, 19px); flex-basis: var(--plugin-icon-size, 19px); background: none; border-radius: 0; color: var(--color-accent-text); }
+.plugin-image-current-color { color: inherit; }
 .plugin-image-monochrome > svg:not(.plugin-image-filter) { width: 100%; height: 100%; }
 .plugin-image-filter { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
 </style>

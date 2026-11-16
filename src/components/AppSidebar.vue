@@ -81,20 +81,21 @@ const emit = defineEmits<{
   grid-row: 1 / 2;
   background: var(--color-bg);
   border-right: 1px solid color-mix(in srgb, var(--color-shadow) 20%, transparent);
-  padding: 20px 8px;
+  padding: var(--space-5) var(--space-2);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2);
   overflow-y: auto;
 }
-.sidebar-settings { margin-top: auto; padding-top: 24px; }
+.sidebar-settings { margin-top: auto; padding-top: var(--space-6); }
 .sidebar::-webkit-scrollbar { display: none; }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 9px 12px;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  min-height: 40px;
   border-radius: 6px;
   color: var(--color-text-muted);
   text-decoration: none;
@@ -138,7 +139,7 @@ const emit = defineEmits<{
 .sidebar-divider {
   height: 1px;
   background: var(--color-border);
-  margin: 8px 12px;
+  margin: var(--space-2) var(--space-3);
 }
 
 .icon-btn {
@@ -146,7 +147,7 @@ const emit = defineEmits<{
   border: none;
   color: var(--color-text-muted);
   cursor: pointer;
-  padding: 4px;
+  padding: var(--space-1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -172,7 +173,7 @@ const emit = defineEmits<{
     width: 260px;
     z-index: 400;
     flex-direction: column;
-    padding: 0 0 24px;
+    padding: 0 0 var(--space-6);
     padding-top: env(safe-area-inset-top);
     gap: 0;
     overflow-x: hidden;
@@ -190,24 +191,24 @@ const emit = defineEmits<{
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    padding: 12px 12px 4px;
+    padding: var(--space-3) var(--space-3) var(--space-1);
     flex-shrink: 0;
   }
   .sidebar-close-btn {
     color: var(--color-text-muted);
-    padding: 8px;
+    padding: var(--space-2);
   }
   .sidebar nav {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 4px 8px;
+    gap: var(--space-half);
+    padding: var(--space-1) var(--space-2);
     width: 100%;
   }
   .sidebar .sidebar-divider { display: block; }
   .nav-item {
-    gap: 12px;
-    padding: 12px 14px;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
     font-size: var(--fs-nav);
     white-space: nowrap;
     flex-shrink: 0;
@@ -225,7 +226,7 @@ const emit = defineEmits<{
     height: 18px;
   }
   .nav-item {
-    padding: 10px 12px;
+    padding: var(--space-3) var(--space-3);
     font-size: var(--fs-nav);
   }
 }

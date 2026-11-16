@@ -22,11 +22,11 @@ const model = defineModel<T>({ required: true });
 </template>
 
 <style scoped>
-.swatch-picker { display: flex; flex-wrap: wrap; gap: 10px; }
+.swatch-picker { display: flex; flex-wrap: wrap; gap: var(--control-gap); }
 .swatch, :slotted(.swatch) {
   position: relative;
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   border: 0;
   border-radius: 50%;

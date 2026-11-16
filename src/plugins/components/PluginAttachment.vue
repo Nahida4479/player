@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { onUnmounted, ref, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import { usePluginHost, validateUiNode } from '../host';
 import type { UiAttachment, UiNode } from '../types';
 import PluginTree from './PluginTree.vue';
 const props = defineProps<{ attachment: UiAttachment; instanceId: string; context: Record<string, unknown> }>();
 const host = usePluginHost();
+const manifest = computed(() => host.plugins.value.find(p => p.manifest.id === props.attachment.pluginId)?.manifest);
 const node = ref<UiNode>();
 const fields = ref<Record<string, string | boolean>>({});
 const busy = ref(false);
@@ -28,7 +29,7 @@ function render() {
   const seq = ++sequence;
   const a = props.attachment;
   const args = scope();
-  node.value = undefined; error.value = ''; fields.value = {};
+  error.value = '';
   host.attachmentQueue.schedule(queueKey, async () => {
     if (!current(seq, a.generation)) return;
     try {
@@ -52,15 +53,19 @@ async function action(action: string, payload = {}, button?: string) {
   } catch (e) { if (current(seq, a.generation)) error.value = String(e); }
   finally { if (!disposed) { busy.value = false; pendingButton.value = undefined; } }
 }
-watch(() => [props.attachment, props.context, host.revision.value], render, { immediate: true, deep: true, flush: 'sync' });
+watch(() => [props.attachment.pluginId, props.attachment.key, props.attachment.generation, props.instanceId], () => {
+  node.value = undefined; fields.value = {}; busy.value = false; pendingButton.value = undefined;
+  render();
+}, { immediate: true, flush: 'sync' });
+watch(() => [props.context, host.revision.value], render, { deep: true, flush: 'sync' });
 onUnmounted(() => { disposed = true; sequence++; host.attachmentQueue.cancel(queueKey); });
 </script>
 <template>
   <section v-if="node || error" class="plugin-attachment" :data-plugin-attachment="attachment.key" :aria-busy="busy">
     <p v-if="error" role="alert">{{ error }}</p>
-    <PluginTree v-if="node" :node="node" :fields="fields" :busy="busy" :pending-button="pendingButton" @action="action" />
+    <PluginTree v-if="node" :node="node" :manifest="manifest" :fields="fields" :busy="busy" :pending-button="pendingButton" @action="action" />
   </section>
 </template>
 <style scoped>
-.plugin-attachment { min-width: 0; max-width: 100%; align-self: stretch; overflow-wrap: anywhere; }
+.plugin-attachment { min-width: 0; max-width: 100%; align-self: center; overflow-wrap: anywhere; }
 </style>

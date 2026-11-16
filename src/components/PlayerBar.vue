@@ -3,12 +3,18 @@ import SeekSpectrum from './SeekSpectrum.vue';
 import AppIcon from './AppIcon.vue';
 import ArtistLink from './ArtistLink.vue';
 import AppSelect from './AppSelect.vue';
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import ResponsivePopup from "./ResponsivePopup.vue";
 import type { AudioDevice, Track } from "../types";
 import { formatDuration, formatSampleRate, formatTime } from "../utils/format";
 import { coverUrl, placeholderCoverColors } from "../utils/covers";
 import CoverImage from "./CoverImage.vue";
+
+const mobileStatusQuery = window.matchMedia('(max-width: 768px)');
+const mobileStatus = ref(mobileStatusQuery.matches);
+const updateMobileStatus = () => { mobileStatus.value = mobileStatusQuery.matches; };
+onMounted(() => mobileStatusQuery.addEventListener('change', updateMobileStatus));
+onUnmounted(() => mobileStatusQuery.removeEventListener('change', updateMobileStatus));
 
 interface CurrentTrackSummary {
   title: string;
@@ -58,6 +64,34 @@ const props = defineProps<{
   peerLabel: (peer: Peer) => string;
   isRemoteOutputPeer: (peer: Peer) => boolean;
 }>();
+
+const titleViewport = ref<HTMLElement>();
+const titleText = ref<HTMLElement>();
+const artistViewport = ref<HTMLElement>();
+const artistText = ref<HTMLElement>();
+const titleOverflow = ref(0);
+const artistOverflow = ref(0);
+function measureTrackText() {
+  titleOverflow.value = Math.max(0, (titleText.value?.scrollWidth ?? 0) - (titleViewport.value?.clientWidth ?? 0));
+  artistOverflow.value = Math.max(0, (artistText.value?.scrollWidth ?? 0) - (artistViewport.value?.clientWidth ?? 0));
+}
+const textObserver = new ResizeObserver(measureTrackText);
+onMounted(() => {
+  for (const element of [titleViewport.value, titleText.value, artistViewport.value, artistText.value]) {
+    if (element) textObserver.observe(element);
+  }
+  measureTrackText();
+});
+watch(() => [props.currentTrack.title, props.currentTrack.artist], async () => {
+  titleOverflow.value = 0;
+  artistOverflow.value = 0;
+  await nextTick();
+  measureTrackText();
+});
+onUnmounted(() => textObserver.disconnect());
+function marqueeStyle(overflow: number) {
+  return { '--marquee-distance': `${-overflow}px`, '--marquee-duration': `${Math.max(8, overflow / 25 + 4)}s` };
+}
 
 const emit = defineEmits<{
   openDetail: [];
@@ -405,6 +439,12 @@ watch(() => props.isPlaying, (isPlaying) => {
   if (zippyPausePhase.value !== "click") zippyPausePhase.value = "idle";
 });
 
+const likeAnimation = ref<'liked' | 'unliked' | null>(null);
+watch(() => [props.nowPlaying?.id, props.isLiked] as const, ([id, liked], [previousId, previousLiked]) => {
+  likeAnimation.value = id === previousId && liked !== previousLiked && !props.reduceMotion
+    ? (liked ? 'liked' : 'unliked') : null;
+});
+
 onUnmounted(() => {
   if (zippyIntroTimer !== undefined) clearTimeout(zippyIntroTimer);
   clearZippyPauseTimers();
@@ -476,13 +516,15 @@ onUnmounted(() => {
         willChange: 'transform',
       }" />
       <div class="track-meta">
-        <div class="track-name"><span class="marquee-text">{{ currentTrack.title }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ currentTrack.title }}</span></div>
-        <div class="track-artist">
-          <ArtistLink :artist="nowPlaying?.artist" @open="emit('openArtist', $event)">{{ currentTrack.artist }}</ArtistLink>
+        <div ref="titleViewport" class="track-name track-text-viewport">
+          <span ref="titleText" class="footer-marquee-text" :class="{ 'is-overflowing': titleOverflow > 1 && !reduceMotion }" :style="marqueeStyle(titleOverflow)">{{ currentTrack.title }}</span>
+        </div>
+        <div ref="artistViewport" class="track-artist track-text-viewport">
+          <span ref="artistText" class="footer-marquee-text" :class="{ 'is-overflowing': artistOverflow > 1 && !reduceMotion }" :style="marqueeStyle(artistOverflow)"><ArtistLink :artist="nowPlaying?.artist" @open="emit('openArtist', $event)">{{ currentTrack.artist }}</ArtistLink></span>
         </div>
       </div>
-      <button class="icon-btn" :class="{ green: isLiked }" :disabled="!nowPlaying || nowPlaying.id <= 0 || likePending" :aria-busy="likePending" :title="isLiked ? 'Unlike' : 'Like'" :aria-pressed="isLiked" @click.stop="emit('toggleLike')">
-        <AppIcon :name="isLiked ? 'liked' : 'like'" :size="16" />
+      <button class="icon-btn like-button" :class="{ green: isLiked }" :disabled="!nowPlaying || nowPlaying.id <= 0 || likePending" :aria-busy="likePending" :title="isLiked ? 'Unlike' : 'Like'" :aria-pressed="isLiked" @click.stop="emit('toggleLike')">
+        <span class="like-glyph" :class="likeAnimation && `like-${likeAnimation}`" @animationend="likeAnimation = null"><AppIcon :name="isLiked ? 'liked' : 'like'" :size="16" /></span>
       </button>
     </div>
 
@@ -518,7 +560,7 @@ onUnmounted(() => {
 
     <div class="player-right">
       <slot name="plugin-actions" />
-      <slot name="plugin-status" />
+      <Teleport defer to="#mobile-plugin-status" :disabled="!mobileStatus"><div class="player-status-tray"><slot name="plugin-status" /></div></Teleport>
       <ResponsivePopup
         :open="showQueueMenu"
         wrapper-class="queue-menu-wrapper"
@@ -526,7 +568,7 @@ onUnmounted(() => {
         @close="emit('update:showQueueMenu', false)"
       >
         <template #trigger>
-          <button class="icon-btn" title="Queue" @click.stop="emit('toggleQueueMenu')">
+          <button class="icon-btn" title="Queue" :aria-expanded="showQueueMenu" @click.stop="emit('toggleQueueMenu')">
             <AppIcon name="queue" :size="16" />
           </button>
         </template>
@@ -548,6 +590,10 @@ onUnmounted(() => {
             v-for="(track, i) in queue"
             :key="i"
             class="queue-item"
+            role="button"
+            tabindex="0"
+            @keydown.enter.self.prevent="emit('jumpToQueueItem', i)"
+            @keydown.space.self.prevent="emit('jumpToQueueItem', i)"
             @click="emit('jumpToQueueItem', i)"
           >
             <CoverImage class="queue-item-cover" :src="coverUrl(track.cover_hash, 'small')" :placeholder="placeholderCoverColors(track.file_hash)" />
@@ -568,7 +614,7 @@ onUnmounted(() => {
         @close="emit('update:showDeviceMenu', false)"
       >
         <template #trigger>
-          <button class="icon-btn" title="Output device" @click.stop="emit('toggleDeviceMenu')">
+          <button class="icon-btn" title="Output device" :aria-expanded="showDeviceMenu" @click.stop="emit('toggleDeviceMenu')">
             <AppIcon name="output-device" :size="16" />
           </button>
         </template>
@@ -578,6 +624,10 @@ onUnmounted(() => {
             v-for="dev in outputDevices"
             :key="dev.name"
             class="device-item device-item-local"
+            role="button"
+            tabindex="0"
+            @keydown.enter.self.prevent="emit('pickLocalDevice', dev.name, undefined, true)"
+            @keydown.space.self.prevent="emit('pickLocalDevice', dev.name, undefined, true)"
             @click="emit('pickLocalDevice', dev.name, undefined, true)"
           >
             <div class="device-item-main">
@@ -645,6 +695,24 @@ onUnmounted(() => {
   isolation: isolate;
 }
 
+.like-glyph { display: inline-flex; transform-origin: center; }
+.like-liked { animation: like-pop 420ms cubic-bezier(.2,.8,.2,1); }
+.like-unliked { animation: like-release 300ms ease-out; }
+@keyframes like-pop {
+  0% { transform: scale(.75); }
+  45% { transform: scale(1.45) rotate(-12deg); }
+  75% { transform: scale(.92) rotate(5deg); }
+  100% { transform: scale(1); }
+}
+@keyframes like-release {
+  0% { transform: scale(1); }
+  40% { transform: scale(.65) rotate(12deg); opacity: .45; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .like-glyph { animation: none; }
+}
+
 /* Real-time spectrum behind the footer controls, without intercepting input. */
 .footer-spectrum {
   position: absolute;
@@ -679,7 +747,7 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: 1fr 2fr 1fr;
   align-items: center;
-  padding: 0 16px;
+  padding: 0 var(--space-4);
   overflow: visible;
   position: relative;
   isolation: isolate;
@@ -903,7 +971,7 @@ onUnmounted(() => {
 .player-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   min-width: 0;
 }
 .thumb {
@@ -916,27 +984,24 @@ onUnmounted(() => {
 .track-name {
   font-size: var(--fs-player-title);
   font-weight: 600;
-  overflow: hidden;
-  mask-image: linear-gradient(to right, transparent 0%, black 5%, black 85%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 85%, transparent 100%);
 }
 .track-artist {
   font-size: var(--fs-player-meta);
   color: var(--color-text-muted);
-  margin-top: 3px;
+  margin-top: var(--space-1);
 }
 
 .player-center {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 14px 0;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
 }
 .ctrl-row {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .icon-btn {
@@ -944,7 +1009,7 @@ onUnmounted(() => {
   border: none;
   color: var(--color-text-muted);
   cursor: pointer;
-  padding: 4px;
+  padding: var(--space-1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1003,7 +1068,7 @@ onUnmounted(() => {
 .progress-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   width: 100%;
 }
 .time {
@@ -1057,12 +1122,16 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: var(--space-2);
+}
+.player-status-tray { display: flex; align-items: center; gap: var(--space-2); }
+@media (max-width: 768px) {
+  .player-status-tray { flex-direction: column; gap: 8px; }
 }
 .vol-wrap {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
   width: 130px;
 }
 .bar.vol { flex: 1; }
@@ -1076,7 +1145,7 @@ onUnmounted(() => {
 .bar.vol:focus-within .bar-thumb { opacity: 1; }
 
 .dropdown-header {
-  padding: 10px 16px 6px;
+  padding: var(--space-3) var(--space-4) var(--space-2);
   font-size: var(--fs-dropdown-label);
   font-weight: 700;
   color: var(--color-text-muted);
@@ -1095,7 +1164,7 @@ onUnmounted(() => {
 }
 .device-list::-webkit-scrollbar-track { background: transparent; }
 .device-section-label {
-  padding: 10px 16px 6px;
+  padding: var(--space-3) var(--space-4) var(--space-2);
   color: var(--color-text-faint);
   font-size: var(--fs-eyebrow);
   font-weight: 700;
@@ -1105,19 +1174,20 @@ onUnmounted(() => {
 .device-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   color: var(--color-text);
   text-decoration: none;
   font-size: var(--fs-dropdown-item);
   cursor: pointer;
 }
 .device-item:hover { background: var(--color-surface-hover); }
-.device-item-local { gap: 10px; }
+.device-item:focus-visible, .queue-item:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -3px; }
+.device-item-local { gap: var(--space-3); }
 .device-item-main {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
   width: 100%;
   min-width: 0;
 }
@@ -1140,16 +1210,17 @@ onUnmounted(() => {
   flex: 0 0 178px;
 }
 .device-error {
-  padding: 0 16px 12px;
+  padding: 0 var(--space-4) var(--space-3);
   color: var(--color-danger-text);
   font-size: var(--fs-body-sm);
+  overflow-wrap: anywhere;
 }
 .device-settings {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
   width: 100%;
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   border: 0;
   border-top: 1px solid var(--color-surface-hover);
   background: transparent;
@@ -1165,7 +1236,7 @@ onUnmounted(() => {
 .queue-now-label,
 .queue-next-label {
   display: block;
-  padding: 8px 16px 4px;
+  padding: var(--space-2) var(--space-4) var(--space-1);
   font-size: var(--fs-eyebrow);
   font-weight: 700;
   color: var(--color-text-muted);
@@ -1175,8 +1246,8 @@ onUnmounted(() => {
 .queue-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
   cursor: pointer;
   transition: background .1s;
 }
@@ -1196,7 +1267,7 @@ onUnmounted(() => {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-half);
 }
 .queue-item-title {
   font-size: var(--fs-queue-title);
@@ -1230,23 +1301,29 @@ onUnmounted(() => {
 }
 .queue-list::-webkit-scrollbar-track { background: transparent; }
 .queue-empty {
-  padding: 16px;
+  padding: var(--space-4);
   color: var(--color-text-muted);
   font-size: var(--fs-body-md);
   text-align: center;
 }
 
-.marquee-text {
+.track-text-viewport { overflow: hidden; white-space: nowrap; }
+.footer-marquee-text {
   display: inline-block;
+  width: max-content;
   white-space: nowrap;
-  animation: marquee 14s linear 2s infinite;
+  vertical-align: top;
+  animation: none;
 }
-
-@keyframes marquee {
-  0% { transform: translateX(0); }
-  15% { transform: translateX(0); }
-  85% { transform: translateX(-50%); }
-  100% { transform: translateX(-50%); }
+.footer-marquee-text.is-overflowing {
+  animation: footer-marquee var(--marquee-duration) ease-in-out infinite alternate;
+}
+@keyframes footer-marquee {
+  0%, 15% { transform: translateX(0); }
+  85%, 100% { transform: translateX(var(--marquee-distance)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .footer-marquee-text.is-overflowing { animation: none; }
 }
 
 @media (max-width: 768px) {
@@ -1260,21 +1337,21 @@ onUnmounted(() => {
   .player {
     display: flex;
     flex-direction: column;
-    padding: 0 10px env(safe-area-inset-bottom);
+    padding: 0 var(--page-padding) env(safe-area-inset-bottom);
     justify-content: center;
-    gap: 8px;
+    gap: var(--space-2);
     overflow: hidden;
     min-width: 0;
   }
   .player-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     justify-content: flex-start;
     order: -1;
     min-width: 0;
-    margin-top: 10px;
-    padding: 0 15px;
+    margin-top: var(--space-3);
+    padding: 0;
     width: 100%;
   }
   .player-right { display: none; }
@@ -1285,7 +1362,7 @@ onUnmounted(() => {
   .player-left .track-meta {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-half);
     min-width: 0;
     flex-grow: 1;
   }
@@ -1301,16 +1378,16 @@ onUnmounted(() => {
   .player-center {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
     padding: 0;
     align-items: stretch;
     order: 0;
   }
   .ctrl-row {
-    gap: 8px;
+    gap: var(--space-2);
     justify-content: center;
   }
-  .icon-btn { padding: 6px; }
+  .icon-btn { padding: var(--space-2); min-width: 40px; min-height: 40px; }
   .play-btn {
     width: 40px;
     height: 40px;
@@ -1343,7 +1420,7 @@ onUnmounted(() => {
 @media (max-width: 480px) {
   .player {
     grid-template-columns: 1fr auto 1fr;
-    padding: 0 8px;
+    padding: 0 var(--page-padding);
     padding-bottom: env(safe-area-inset-top);
   }
   .player-left { width: 100%; }
@@ -1351,7 +1428,7 @@ onUnmounted(() => {
     width: 40px;
     height: 40px;
   }
-  .ctrl-row { gap: 8px; }
+  .ctrl-row { gap: var(--space-2); }
   .player-right :global(.device-menu-wrapper) { display: none; }
 }
 </style>

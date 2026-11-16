@@ -11,6 +11,7 @@ mod file_rollback;
 pub mod identify;
 pub mod import;
 mod import_paths;
+mod indexing_service;
 pub mod library;
 pub mod playback;
 pub mod plugin_sources;
@@ -129,6 +130,11 @@ fn init_tracing() {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(desktop)]
+    if let Err(error) = plugins::secrets::initialize_from_args() {
+        eprintln!("Credential configuration error: {error}");
+        std::process::exit(2);
+    }
     // let _stream = play_sine(440.0);
     init_tracing();
     let demo_mode = demo::is_demo_mode_enabled();
@@ -139,7 +145,8 @@ pub fn run() {
 
     #[cfg(target_os = "android")]
     let builder = builder.plugin(plugins::secrets::mobile_plugin())
-        .plugin(plugins::android::mobile_plugin());
+        .plugin(plugins::android::mobile_plugin())
+        .plugin(indexing_service::mobile_plugin());
 
     #[cfg(desktop)]
     let builder = builder
@@ -150,6 +157,25 @@ pub fn run() {
     builder
         .setup(move |app| {
             use tauri::Manager;
+            // Bundled legacy icons acquire a background on macOS Tahoe. Use the
+            // original transparent artwork for the running app, as in development.
+            #[cfg(target_os = "macos")]
+            {
+                use objc2::{AllocAnyThread, MainThreadMarker};
+                use objc2_app_kit::{NSApplication, NSImage};
+                use objc2_foundation::NSData;
+
+                let main_thread = MainThreadMarker::new()
+                    .expect("Tauri setup must run on the main thread");
+                let data = NSData::with_bytes(include_bytes!("../icons/icon.png"));
+                let icon = NSImage::initWithData(NSImage::alloc(), &data)
+                    .ok_or("could not decode application icon")?;
+                // SAFETY: setup runs on the main thread and supplies a valid NSImage.
+                unsafe {
+                    NSApplication::sharedApplication(main_thread)
+                        .setApplicationIconImage(Some(&icon));
+                }
+            }
             #[cfg(target_os = "android")]
             let data_dir = if demo_mode {
                 std::path::PathBuf::from("/sdcard/Player Demo")
@@ -269,6 +295,9 @@ pub fn run() {
             about::about_info,
             about::about_check_updates,
             about::about_do_update,
+            about::about_update_status,
+            about::about_update_continue,
+            about::about_update_cancel,
             playback::playback_play,
             playback::playback_play_track,
             playback::playback_play_absolute,

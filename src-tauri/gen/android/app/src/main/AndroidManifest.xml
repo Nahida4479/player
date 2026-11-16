@@ -7,6 +7,9 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- mDNS multicast requires holding a Wi-Fi multicast lock -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
@@ -24,7 +27,7 @@
         android:theme="@style/Theme.player"
         android:usesCleartextTraffic="${usesCleartextTraffic}">
         <activity
-            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|fontScale"
             android:launchMode="singleTask"
             android:label="@string/main_activity_title"
             android:name=".MainActivity"
@@ -48,7 +51,7 @@
         </provider>
 
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name=".CatalogApkFileProvider"
             android:authorities="${applicationId}.catalog-apks"
             android:exported="false"
             android:grantUriPermissions="true">
@@ -60,6 +63,11 @@
         <service
             android:name=".MediaPlaybackService"
             android:foregroundServiceType="mediaPlayback"
+            android:exported="false" />
+
+        <service
+            android:name=".IndexingService"
+            android:foregroundServiceType="dataSync"
             android:exported="false" />
     </application>
 </manifest>

@@ -1,6 +1,6 @@
 [package]
 name = "player"
-version = "0.3.6"
+version = "0.3.10"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -59,7 +59,7 @@ image = { version = "0.25", default-features = false, features = ["jpeg", "png",
 
 [target.'cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))'.dependencies]
 tauri-plugin-process = "2"
-tauri-plugin-dialog = "2"
+tauri-plugin-dialog = "=2.7.3"
 tauri-plugin-updater = "2"
 
 [patch.crates-io]
@@ -68,6 +68,9 @@ symphonia-format-ogg = { path = "vendor/symphonia-format-ogg" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 security-framework = "3"
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSApplication", "NSImage"] }
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSData"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Security_Credentials", "Win32_Foundation"] }

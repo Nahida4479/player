@@ -7,13 +7,14 @@ import ImageLoader from "./ImageLoader.vue";
 // children go on top of the image.
 const props = defineProps<{
   src: string | null;
+  loading?: boolean;
   placeholder?: [string, string];
 }>();
 
 const failed = ref(false);
 const loaded = ref(false);
 watch(() => props.src, () => { failed.value = false; loaded.value = false; }, { flush: 'sync' });
-const loading = computed(() => Boolean(props.src && !failed.value && !loaded.value));
+const showLoader = computed(() => Boolean(props.loading || (props.src && !failed.value && !loaded.value)));
 
 const placeholderStyle = computed(() => (props.placeholder
   ? { background: `linear-gradient(135deg, ${props.placeholder[0]}, ${props.placeholder[1]})` }
@@ -27,7 +28,7 @@ const placeholderStyle = computed(() => (props.placeholder
       v-if="src && !failed"
       :key="src"
       :src="src"
-      :class="{ 'image-pending': loading }"
+      :class="{ 'image-pending': showLoader }"
       alt=""
       crossorigin="anonymous"
       loading="lazy"
@@ -36,7 +37,7 @@ const placeholderStyle = computed(() => (props.placeholder
       @load="loaded = true"
       @error="failed = true"
     >
-    <ImageLoader v-if="loading" />
+    <ImageLoader v-if="showLoader" />
     <slot />
   </div>
 </template>

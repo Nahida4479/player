@@ -2,6 +2,7 @@ package dev.verncat.player
 
 import android.content.ClipData
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.net.wifi.WifiManager
 import android.os.Build
@@ -18,6 +19,7 @@ import androidx.core.content.FileProvider
 import org.json.JSONArray
 import java.io.File
 import java.lang.ref.WeakReference
+import kotlin.math.roundToInt
 
 class MainActivity : TauriActivity() {
 
@@ -69,6 +71,7 @@ class MainActivity : TauriActivity() {
     override fun onWebViewCreate(webView: WebView) {
         super.onWebViewCreate(webView)
         webViewRef = WeakReference(webView)
+        applyFontScale(webView, resources.configuration)
         webView.addJavascriptInterface(object : Any() {
 
             @JavascriptInterface
@@ -151,6 +154,17 @@ class MainActivity : TauriActivity() {
                 stopService(Intent(this@MainActivity, MediaPlaybackService::class.java))
             }
         }, "AndroidBridge")
+    }
+
+    private fun applyFontScale(webView: WebView, configuration: Configuration) {
+        // WebView CSS pixels do not inherit Android's sp scaling. Set an absolute
+        // percentage rather than multiplying the existing zoom on each update.
+        webView.settings.textZoom = (configuration.fontScale * 100).roundToInt()
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        webViewRef?.get()?.let { applyFontScale(it, newConfig) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

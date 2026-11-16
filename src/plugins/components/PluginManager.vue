@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { usePluginHost } from '../host';
 import SettingsToggle from '../../components/SettingsToggle.vue';
 import PluginMetadata from './PluginMetadata.vue';
 import PluginImage from './PluginImage.vue';
 import AppToast from '../../components/AppToast.vue';
+import PluginInstaller from './PluginInstaller.vue';
+import { isPluginUpdate } from '../catalog';
+import type { CatalogEntry, PluginCatalogListing } from '../types';
 
 const emit = defineEmits<{ settings: [key: string] }>();
 const host = usePluginHost();
@@ -13,6 +16,25 @@ const settings = host.contributions('settings');
 const settingsFor = (id: string) => settings.value.find(entry => entry.pluginId === id);
 const error = ref('');
 const busy = ref('');
+const installer = ref<InstanceType<typeof PluginInstaller>>();
+const catalog = ref<PluginCatalogListing>();
+const updateBusy = ref(false);
+const updateId = ref('');
+const updateFor = (id: string) => {
+  const plugin = host.plugins.value.find(plugin => plugin.manifest.id === id);
+  return catalog.value?.catalog.plugins.find(entry => entry.id === id && entry.platforms.includes(catalog.value!.platform) && isPluginUpdate(plugin?.manifest.version, entry.version));
+};
+async function refreshCatalog() {
+  try { catalog.value = await invoke<PluginCatalogListing>('plugins_catalog'); }
+  catch (e) { error.value = String(e); }
+}
+async function update(entry: CatalogEntry) {
+  if (busy.value || updateBusy.value) return;
+  updateId.value = entry.id; busy.value = `update:${entry.id}`;
+  try { await installer.value?.review(entry); }
+  finally { busy.value = ''; }
+}
+onMounted(refreshCatalog);
 async function toggle(id: string, enabled: boolean) {
   if (busy.value) return;
   try { busy.value = id; error.value = ''; await host.setEnabled(id, enabled); }
@@ -47,6 +69,8 @@ async function retry(id: string) {
   <section class="plugin-manager">
     <AppToast :message="error" @dismiss="error = ''" />
     <p v-if="host.errors.value.host" class="error" role="alert">{{ host.errors.value.host }}</p>
+    <PluginInstaller ref="installer" review-only @busy="updateBusy = $event" @done="updateId = ''; refreshCatalog()" />
+    <button type="button" class="control-button" :disabled="Boolean(busy) || updateBusy" @click="refreshCatalog">Refresh catalog</button>
     <p v-if="host.loading.value" role="status">Loading plugins…</p>
     <p v-if="!host.loading.value && !host.plugins.value.length">No plugins installed.</p>
     <article v-for="plugin in host.plugins.value" :key="plugin.manifest.id" class="plugin-card">
@@ -54,14 +78,14 @@ async function retry(id: string) {
         <PluginImage :manifest="plugin.manifest" />
         <div>
           <h4>
-            <button v-if="settingsFor(plugin.manifest.id)" type="button" class="plugin-title-link" :disabled="Boolean(busy)"
+            <button v-if="settingsFor(plugin.manifest.id)" type="button" class="plugin-title-link" :disabled="Boolean(busy) || updateBusy"
               :aria-label="`Open ${plugin.manifest.name} settings`" @click="emit('settings', settingsFor(plugin.manifest.id)!.key)">{{ plugin.manifest.name }}</button>
             <template v-else>{{ plugin.manifest.name }}</template>
             <small>{{ plugin.manifest.version }}</small>
           </h4>
           <p>{{ plugin.manifest.description }}</p>
         </div>
-        <SettingsToggle :model-value="plugin.enabled" :label="plugin.manifest.name" :disabled="!plugin.supported || Boolean(busy)" :aria-busy="busy === plugin.manifest.id" @update:model-value="toggle(plugin.manifest.id, $event)" />
+        <SettingsToggle :model-value="plugin.enabled" :label="plugin.manifest.name" :disabled="!plugin.supported || Boolean(busy) || updateBusy" :aria-busy="busy === plugin.manifest.id" @update:model-value="toggle(plugin.manifest.id, $event)" />
       </div>
       <PluginMetadata :manifest="plugin.manifest" />
       <p v-if="plugin.manifest.androidNative">Android APK · {{ plugin.manifest.androidNative.packageName }}</p>
@@ -69,9 +93,10 @@ async function retry(id: string) {
       <p v-else-if="plugin.enabled && !host.running.value.includes(plugin.manifest.id)">Not running</p>
       <p v-if="host.errors.value[plugin.manifest.id]" class="error" role="alert">{{ host.errors.value[plugin.manifest.id] }}</p>
       <div class="plugin-actions">
-        <button v-if="(plugin.enabled || host.errors.value[plugin.manifest.id]) && plugin.supported && !host.running.value.includes(plugin.manifest.id)" class="control-button" :disabled="Boolean(busy)" :aria-busy="busy === `retry:${plugin.manifest.id}`" @click="retry(plugin.manifest.id)">Retry</button>
-        <button v-if="!plugin.enabled" class="control-button" :disabled="Boolean(busy)" :aria-busy="busy === `cache:${plugin.manifest.id}`" @click="clearCache(plugin.manifest.id)">Clear cache</button>
-        <button v-if="!plugin.enabled" class="control-button" :disabled="Boolean(busy)" :aria-busy="busy === `uninstall:${plugin.manifest.id}`" @click="uninstall(plugin.manifest.id)">Uninstall</button>
+        <button v-if="updateFor(plugin.manifest.id)" type="button" class="control-button control-button-primary" :disabled="Boolean(busy) || updateBusy" :aria-busy="updateId === plugin.manifest.id && (Boolean(busy) || updateBusy)" @click="update(updateFor(plugin.manifest.id)!)">{{ updateId === plugin.manifest.id && (Boolean(busy) || updateBusy) ? 'Loading update…' : 'Update' }}</button>
+        <button v-if="(plugin.enabled || host.errors.value[plugin.manifest.id]) && plugin.supported && !host.running.value.includes(plugin.manifest.id)" class="control-button" :disabled="Boolean(busy) || updateBusy" :aria-busy="busy === `retry:${plugin.manifest.id}`" @click="retry(plugin.manifest.id)">Retry</button>
+        <button v-if="!plugin.enabled" class="control-button" :disabled="Boolean(busy) || updateBusy" :aria-busy="busy === `cache:${plugin.manifest.id}`" @click="clearCache(plugin.manifest.id)">Clear cache</button>
+        <button v-if="!plugin.enabled" class="control-button" :disabled="Boolean(busy) || updateBusy" :aria-busy="busy === `uninstall:${plugin.manifest.id}`" @click="uninstall(plugin.manifest.id)">Uninstall</button>
       </div>
       <small>{{ plugin.manifest.id }}</small>
     </article>

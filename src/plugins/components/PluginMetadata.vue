@@ -28,8 +28,8 @@ async function open(url: string) {
   </div>
 </template>
 <style scoped>
-.plugin-metadata { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; color: var(--color-text-muted); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
-.plugin-links { display: flex; gap: 12px; flex-wrap: wrap; }.plugin-links:empty { display: none; }
+.plugin-metadata { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-3); color: var(--color-text-muted); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.plugin-links { display: flex; gap: var(--space-3); flex-wrap: wrap; }.plugin-links:empty { display: none; }
 .plugin-metadata a { color: var(--color-text-muted); text-decoration: underline; text-underline-offset: 3px; }.plugin-metadata a:hover { color: var(--color-text); }
 .plugin-link-error { flex-basis: 100%; }
 </style>

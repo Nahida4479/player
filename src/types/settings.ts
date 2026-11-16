@@ -47,3 +47,10 @@ export interface AboutUpdateStatus {
   checked_repo: string | null;
   message: string;
 }
+
+export interface AndroidUpdateStatus {
+  status: 'idle' | 'downloading' | 'verifying' | 'permission' | 'installing' | 'cancelled' | 'error';
+  downloaded: number;
+  total: number;
+  error?: string;
+}

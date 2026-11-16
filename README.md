@@ -50,6 +50,7 @@ This project is not a cloud streaming service! The filesystem is the source of t
 Player focuses on a few core jobs:
 
 - Index a local music library and keep it in sync with the filesystem.
+  Repeated scans preserve track IDs and only count newly discovered files as additions; unchanged audio and CUE albums are skipped.
 - Play audio through a native Rust backend with low-latency controls.
 - Browse by artist and album, and store and edit metadata, likes, history, and playlists.
 - Build smart playlists from filter rules.
@@ -133,7 +134,27 @@ These screenshots were captured with the built-in demo mode. Click any image to 
 - Track editing and identification through AcoustID fingerprints.
 - Likes, play counts, history, and recent tracks.
 - Duplicate detection: flags duplicates without deleting anything.
-- Drag-and-drop import of files and folders.
+- Drag files or folders anywhere onto the app window to import music. A window-wide drop target appears while dragging; imports copy into the library without moving originals, with progress shown in Activity.
+
+On Android, native library scans use a separate **Library indexing** foreground
+notification and a partial wake lock while at least one scan is active; playback
+uses its own service. Discovery shows indeterminate progress, followed by file
+counts. Tapping the notification opens Player. Starting a scan must be permitted
+by Android's foreground-service rules: a background start can be rejected, in
+which case indexing reports a failure rather than running without protection.
+Android 15+ also limits the app's total background `dataSync` service time. On a
+timeout the notification and wake lock are removed immediately, and the native
+scan cancels at its next progress checkpoint (an in-flight file may finish first).
+Force-stop, process death, device power policy, and denied notifications can still
+interrupt or hide this work; the service is not automatically restarted. Reopen
+Player and explicitly reindex to resume; already committed unchanged files are
+skipped. Merely reopening an existing library does not automatically resume an
+interrupted scan.
+On Android 13+, the first scan started while Player is visible requests notification
+permission once. Denial does not prevent foreground indexing, but Android may hide
+its notification from the notification drawer; enable notifications in system app
+settings to restore visibility. A scan started before the activity is visible
+does not open a permission prompt from the background.
 
 ### Playback
 
@@ -148,6 +169,7 @@ These screenshots were captured with the built-in demo mode. Click any image to 
 
 - Regular playlists and smart playlists driven by filter rules, with pinning to the home screen.
 - Fast paged library and search, so large libraries stay responsive.
+- Playing a pinned regular or smart playlist from Home, including a preview row, continues through the full playlist by fetching queue pages as needed rather than stopping at the preview or loading every track upfront.
 - Reveal a track's file in the file manager, or share it (Android).
 
 ### Sync, discovery, and remote playback
@@ -177,8 +199,10 @@ These screenshots were captured with the built-in demo mode. Click any image to 
 - Dark and light themes (or following the system) with a choice of accent color and header gradient.
 - Settings page for library tools, audio output, device identity and sync, Soulseek, and appearance (theme, accent color, gradient, tint, reduced motion).
 - Appearance includes independent **Footer live spectrum** and **Seek waveform** switches, both on by default and saved on this device. Disabling seek waveforms keeps ordinary played/unplayed seek progress and background waveform caching; reduced motion only pauses live/decorative visuals, not static seek waveforms.
+- Seek progress moves smoothly between playback status updates without extra backend polling; pausing freezes it and seeking jumps directly to the selected position.
+- Footer track titles and artists scroll independently only when they exceed their available width, travelling just far enough to reveal the end before returning. Fitting text stays still; reduced motion disables this scrolling, and artist names remain clickable.
 - Optional Discord Rich Presence on desktop, off by default.
-- About section with version info, update checks, an embedded changelog, contributors, and third-party licenses.
+- About section with version info, update checks, an embedded changelog, contributors, and third-party licenses. Release notes preserve Markdown paragraph, heading, and nested-list spacing; long code blocks scroll within the notes.
 - Demo mode with a seeded library (`--demo`), used for the screenshots above.
 - Seek bars use cached audio waveforms: indexing analyzes local audio into 256 absolute RMS-amplitude bins (mean energy across channels, without phase cancellation or per-bin normalization), persists them across restarts, and regenerates them when the source, track segment, or analysis algorithm changes. Existing libraries and older peak caches are backfilled in the background, prioritizing the selected track after the current source finishes. The player lazily requests only the selected track's cached waveform and refreshes it when analysis finishes; pending or unsupported waveforms show a neutral progress line instead. Narrow seek bars combine bins by mean energy to keep visible gaps between bars. Desktop, mobile, and track detail views support click/drag seeking and arrow keys, Home, and End; the visual is 19px high while mobile seek targets remain at least 44px.
 
@@ -186,8 +210,24 @@ These screenshots were captured with the built-in demo mode. Click any image to 
 
 Windows, macOS, and Linux releases use the signed Tauri Updater flow. Release builds publish
 platform updater bundles, their `.sig` files, and a generated `latest.json` manifest to GitHub
-Releases. Android keeps the release-page/APK fallback because the official Tauri updater does
-not install mobile packages.
+Releases. Android uses its native APK updater instead of the desktop Tauri updater.
+In About, **Update now** downloads the APK with actual byte progress, verifies it, and opens
+Android's package installer. If Android requests permission to install unknown apps, allow
+Player and return to the app; installation resumes automatically. Downloading, verification,
+permission, and installer hand-off are distinct states, not confirmation that an update was
+installed. You can cancel a pending update or retry after an error. Returning to About or
+recreating the screen restores the native update status without starting another download.
+The release-page link remains available for manual downloads.
+Only the latest stable official universal APK is accepted. Player streams it into private
+cache, checks that its application ID matches, its Android version code is newer, and
+its cryptographically verified signing certificates match the installed app before
+opening the installer. Differently signed local/debug builds cannot update to a release
+signed with another key. Partial and failed downloads are removed; Android may terminate
+Player during replacement, so reopen it to confirm the new version.
+
+APK plugins use a separate restricted FileProvider component from the general file-sharing
+provider. This prevents Android from reusing the wrong provider for the catalog authority,
+which can otherwise make the package installer report a package parsing error.
 
 The updater public key is committed in `src-tauri/tauri.conf.json`. Keep the matching private
 key outside the repository and back it up: losing it prevents shipping updates to existing
@@ -282,6 +322,29 @@ pnpm install
 pnpm tauri dev
 ```
 
+### Plaintext plugin credentials (desktop opt-in)
+
+By default plugin secrets use OS credential storage. To keep **all plugin secrets
+in an unencrypted plaintext JSON file instead**, launch with an explicit path:
+
+```bash
+pnpm tauri dev -- -- --credentials-file /tmp/player-test-credentials.json
+```
+
+Relative paths are resolved against the app's working directory. The desktop
+executable also accepts `--credentials-file <path>` directly. No environment
+variable enables this mode. Missing or duplicate paths stop startup with an error.
+File mode never reads or migrates OS credentials; existing caches retain their
+normal plugin activation/reset behavior. An initially empty file therefore needs
+the Soulseek password entered again in the UI. The username remains in normal
+plugin settings, not this file.
+
+**Warning:** anyone who can read this file can read the passwords. Do not commit,
+share, or back it up insecurely. On Unix, newly created directories are private
+(`0700`) and files are forced to `0600` or access fails. Symlink and non-regular
+credential files are rejected, malformed JSON fails closed, and saves use atomic
+replacement. Existing OS credentials remain unchanged when this flag is omitted.
+
 ### Run in demo mode
 
 Demo mode uses a separate, seeded library and doesn't touch your own:
@@ -312,17 +375,27 @@ pnpm icons:generate
 The script invokes Tauri directly (without version synchronization), preserving
 desktop PNG/ICO/ICNS alpha and iOS's required opaque white background. It then
 regenerates Android resources in `src-tauri/gen/android/app/src/main/res/` with
-transparent backgrounds and centered artwork: the adaptive foreground fits a
+an opaque graphite background (`#20242C`) and centered cyan/purple artwork: the adaptive foreground fits a
 46dp square inside the central 66dp safe circle of the 108dp canvas. Legacy and
 round launchers also have padding, and hdpi launchers are correctly 72px. Both
 adaptive launcher XML variants and the manifest round-icon reference are kept
 in sync. Run this command rather than bare `tauri icon`, which overwrites these
 Android corrections. The Android project must already exist.
 
-Android launchers can still impose their own opaque backing, shadows, and mask;
-transparent resources cannot force a transparent launcher presentation. Circle
-and rounded-square previews can check artwork fit, but are not a substitute for
-checking the installed icon on a real launcher.
+On macOS, the running application explicitly uses the transparent PNG via
+AppKit's `NSApplication.applicationIconImage`, keeping the Dock artwork consistent
+between development and bundled releases without adding an opaque tile. This
+does not override Finder or Spotlight: macOS Tahoe may add its own backing to
+legacy `.icns` bundle icons even when their pixels are transparent. A native
+Icon Composer asset requires a newer Apple toolchain and is not generated by
+this script. Do not treat a transparent `.icns` preview as proof of Finder's
+presentation, or modify the signed app bundle to apply a custom Finder icon.
+
+Android uses an explicit graphite background for consistent contrast rather than
+relying on a launcher's treatment of transparency. The foreground remains
+transparent and retains adaptive support and safe-zone padding; legacy icons
+use the same graphite background. Launchers can still choose masks, shadows,
+and themed-icon treatments. Desktop artwork remains transparent.
 
 ### Profile library indexing with Tracy
 
@@ -381,6 +454,16 @@ or sent when downloading avatars.
 pnpm android:build
 pnpm android:build-deploy
 ```
+Native updater regression tests live in `SelfUpdaterTest`. Run them on an isolated emulator,
+not a production device: the permission test opens Android settings and the package installer.
+Pass instrumentation arguments `compatibleApk` and `foreignApk` pointing to readable test APKs
+with application ID `dev.verncat.player` and a version code newer than the installed debug app.
+Sign the former with the installed debug key and the latter with a different key. Set the
+emulator's `REQUEST_INSTALL_PACKAGES` app-op to `deny` before the run; the permission-resume test
+changes it to `allow` and exercises real content-URI hand-off without accepting installation.
+The tests also reject malformed, same-version, wrong-package, wrong-signer and tampered APKs.
+Run `ApkPluginsTest#catalogApkProviderResolvesAndStreamsPrivateDownload` alongside them for the
+catalog-provider authority/streaming regression.
 
 ## Repository notes
 

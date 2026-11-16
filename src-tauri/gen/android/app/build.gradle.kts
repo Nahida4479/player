@@ -16,6 +16,8 @@ val tauriProperties = Properties().apply {
 android {
     compileSdk = 36
     namespace = "dev.verncat.player"
+    // Opt in to exercising independently optimized APK linkage on an emulator.
+    testBuildType = providers.gradleProperty("androidPluginTestBuildType").orElse("debug").get()
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "true"
         applicationId = "dev.verncat.player"
@@ -39,8 +41,13 @@ android {
         }
         getByName("release") {
             isMinifyEnabled = true
+            if (providers.gradleProperty("androidPluginTestBuildType").orNull == "release") {
+                signingConfig = signingConfigs.getByName("debug")
+                proguardFiles("plugin-test-rules.pro")
+                testProguardFiles("proguard-rules.pro", "plugin-test-rules.pro")
+            }
             proguardFiles(
-                *fileTree(".") { include("**/*.pro") }
+                *fileTree(".") { include("**/*.pro"); exclude("plugin-test-rules.pro") }
                     .plus(getDefaultProguardFile("proguard-android-optimize.txt"))
                     .toList().toTypedArray()
             )
@@ -59,6 +66,7 @@ rust {
 }
 
 dependencies {
+    implementation("com.android.tools.build:apksig:8.11.0")
     implementation("androidx.webkit:webkit:1.14.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.activity:activity-ktx:1.10.1")
@@ -66,6 +74,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.4")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")
+    androidTestImplementation("com.fasterxml.jackson.core:jackson-databind:2.15.3")
 }
 
 apply(from = "tauri.build.gradle.kts")

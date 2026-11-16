@@ -6,6 +6,31 @@ import { computed, reactive, ref } from 'vue';
 const plain = (v) => JSON.parse(JSON.stringify(v));
 const settle = () => new Promise(resolve => setImmediate(resolve));
 
+test('status nodes validate all supported tones and require accessible labels', () => {
+  const source = readFileSync(new URL('../src/plugins/host.ts', import.meta.url), 'utf8');
+  const parsed = ts.createSourceFile('host.ts', source, ts.ScriptTarget.Latest, true);
+  const fn = parsed.statements.find(s => ts.isFunctionDeclaration(s) && s.name?.text === 'validateUiNode');
+  const code = ts.transpileModule(fn.getText(parsed), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
+  const exports = {};
+  new Function('exports', code)(exports);
+  for (const tone of ['active', 'error', 'success']) {
+    const node = { type: 'status', tone, label: 'Soulseek transfer' };
+    assert.equal(exports.validateUiNode(node), node);
+    assert.equal(exports.validateUiNode({ type: 'group', children: [node] }).children[0], node);
+    const popup = { ...node, title: 'Transfer details', children: [{ type: 'group', children: [{ type: 'button', label: 'Cancel preview', action: 'play', payload: { resourceId: 'track' }, disabled: true }] }] };
+    assert.equal(exports.validateUiNode(popup), popup);
+  }
+  for (const node of [
+    { type: 'status', tone: 'idle', label: 'Idle' },
+    { type: 'status', label: 'Missing tone' },
+    { type: 'status', tone: 'active' },
+    { type: 'status', tone: 'error', label: ' ' },
+    { type: 'status', tone: 'success', label: 7 },
+    { type: 'status', tone: 'success', label: 'x'.repeat(4001) },
+  ]) assert.throws(() => exports.validateUiNode(node));
+  assert.throws(() => exports.validateUiNode({ type: 'status', tone: 'active', label: 'Transfer', children: [{ type: 'invalid' }] }));
+});
+
 test('internal plugin pages stay routable while only visible pages reach the sidebar', () => {
   const script = readFileSync(new URL('../src/App.vue', import.meta.url), 'utf8').split('<script setup lang="ts">')[1].split('</script>')[0];
   const parsed = ts.createSourceFile('App.ts', script, ts.ScriptTarget.Latest, true);

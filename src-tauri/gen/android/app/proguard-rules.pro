@@ -25,6 +25,8 @@
 -keep class dev.verncat.player.ApkBinding { *; }
 -keep class dev.verncat.player.ApkCallArgs { *; }
 -keep class dev.verncat.player.ApkDeactivateArgs { *; }
+-keep class dev.verncat.player.ApkInstallArgs { *; }
+-keep class dev.verncat.player.SelfUpdateArgs { *; }
 -keep class dev.verncat.player.PluginSecrets { *; }
 -keep class dev.verncat.player.PluginSecretArgs { *; }
 
@@ -33,3 +35,4 @@
 # Shared with independently shrunk plugin APKs through the parent class loader.
 # Preserve invoke as well as the type name: both are part of the callback ABI.
 -keep interface kotlin.jvm.functions.Function2 { *; }
+-keep interface kotlin.Function { *; }

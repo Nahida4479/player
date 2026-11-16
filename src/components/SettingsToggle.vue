@@ -10,7 +10,9 @@ const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
 </template>
 
 <style scoped>
-.settings-switch { width: 42px; height: 24px; border: 1px solid var(--color-border-strong); border-radius: 99px; background: transparent; padding: 3px; cursor: pointer; flex-shrink: 0; transition: background .15s; }
+/* The 3px inset fits the 16px thumb inside the 24px track; it is control geometry, not layout spacing. */
+.settings-switch { position: relative; width: 42px; height: 24px; border: 1px solid var(--color-border-strong); border-radius: 99px; background: transparent; padding: 3px; cursor: pointer; flex-shrink: 0; transition: background .15s; }
+.settings-switch::after { content: ''; position: absolute; inset: -8px 0; }
 .settings-switch span { display: block; width: 16px; height: 16px; border-radius: 50%; background: var(--color-text); transition: transform .15s; }
 .settings-switch[aria-checked=true] { background: var(--color-accent); border-color: var(--color-accent); }
 .settings-switch[aria-checked=true] span { transform: translateX(17px); background: var(--color-on-accent); }

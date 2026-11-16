@@ -34,7 +34,7 @@ const emit = defineEmits<{
 .album-card {
   width: 150px;
   flex-shrink: 0;
-  padding: 12px;
+  padding: var(--space-3);
   border-radius: var(--radius-card, 6px);
   background: var(--color-card);
   cursor: pointer;
@@ -44,7 +44,7 @@ const emit = defineEmits<{
 .album-card-cover {
   aspect-ratio: 1;
   border-radius: 4px;
-  margin-bottom: 10px;
+  margin-bottom: var(--space-3);
   background-color: var(--color-surface);
   background-size: cover;
   background-position: center;
@@ -58,7 +58,7 @@ const emit = defineEmits<{
   text-overflow: ellipsis;
 }
 .album-card-meta {
-  margin-top: 4px;
+  margin-top: var(--space-1);
   font-size: var(--fs-card-meta);
   color: var(--color-text-muted);
   white-space: nowrap;

@@ -19,7 +19,7 @@ const model = defineModel<number>({ required: true });
 </template>
 
 <style scoped>
-.range-slider { display: inline-flex; align-items: center; gap: 12px; flex-shrink: 0; }
-.range-slider input { width: 160px; accent-color: var(--color-accent); cursor: pointer; }
+.range-slider { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--control-gap); max-width: 100%; }
+.range-slider input { width: 160px; max-width: 100%; min-width: 0; min-height: 40px; margin: 0; accent-color: var(--color-accent); cursor: pointer; }
 .range-slider-value { min-width: 4ch; color: var(--color-text-muted); font-size: var(--fs-control); font-variant-numeric: tabular-nums; text-align: right; }
 </style>
