@@ -485,6 +485,20 @@ const aboutUpdateProgress = ref<number | null>(null);
 const aboutDesktopUpdateReady = ref(false);
 const aboutDesktopUpdateDownloaded = ref(false);
 const updatePromptOpen = ref(false);
+const AUTO_UPDATE_KEY = 'player.autoUpdateChecks';
+const autoUpdateChecks = ref(true);
+try {
+  autoUpdateChecks.value = localStorage.getItem(AUTO_UPDATE_KEY) !== 'off';
+} catch {
+  autoUpdateChecks.value = true;
+}
+watch(autoUpdateChecks, (enabled) => {
+  try {
+    localStorage.setItem(AUTO_UPDATE_KEY, enabled ? 'on' : 'off');
+  } catch {
+    return;
+  }
+});
 let pendingDesktopUpdate: Update | null = null;
 const aboutAndroidUpdate = ref<AndroidUpdateStatus | null>(null);
 let aboutUpdatePollTimer: ReturnType<typeof setTimeout> | null = null;
@@ -3196,6 +3210,7 @@ function scheduleInitialAppDataLoad() {
       void loadAppData('mount');
       // silent update check — no blocking UI, populates aboutUpdateStatus in background
       setTimeout(async () => {
+        if (!autoUpdateChecks.value) return;
         await checkAboutUpdates();
         if (hasAvailableUpdate.value) updatePromptOpen.value = true;
       }, 3000);
@@ -3337,7 +3352,7 @@ async function autoDownloadUpdate() {
 }
 
 function backgroundUpdateTick() {
-  if (!supportsTauriUpdater.value) return;
+  if (!autoUpdateChecks.value || !supportsTauriUpdater.value) return;
   if (!pendingDesktopUpdate && !aboutCheckingUpdates.value && Date.now() - lastUpdateCheckAt >= UPDATE_RECHECK_MS) {
     void checkAboutUpdates();
   }
@@ -4932,7 +4947,7 @@ onUnmounted(() => {
               <AboutPanel :info="aboutInfo" :loading="aboutLoading" :error="aboutError" :status="aboutUpdateStatus"
                 :checking="aboutCheckingUpdates" :updating="aboutUpdating" :progress="aboutUpdateProgress"
                 :desktop-ready="aboutDesktopUpdateReady" :update-error="aboutUpdateError" :update-done="aboutUpdateDone"
-                :android-update="aboutAndroidUpdate" @cancel-update="cancelAboutUpdate"
+                :android-update="aboutAndroidUpdate" :auto-check="autoUpdateChecks" @update:auto-check="autoUpdateChecks = $event" @cancel-update="cancelAboutUpdate"
                 @check="checkAboutUpdates" @update="doAboutUpdate" @open-release="openAboutDownloadLink"
                 @open-repository="openUrl('https://github.com/' + (aboutInfo?.release_repo || 'NoName-Audio/player'))"
                 @retry="loadAbout(true)" @open-external="openUrl" />
@@ -5042,6 +5057,7 @@ onUnmounted(() => {
           </div>
           <div class="modal-body">
             <p class="modal-copy">Version {{ aboutUpdateStatus?.latest_version }} of Player is available. Do you want to update now?</p>
+            <label class="check-option"><input v-model="autoUpdateChecks" type="checkbox" :true-value="false" :false-value="true" /> Don't check for updates automatically</label>
             <p v-if="aboutUpdateError" class="error" role="alert">{{ aboutUpdateError }}</p>
           </div>
           <div class="modal-footer">
